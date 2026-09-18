@@ -3,7 +3,8 @@ import Toybox.System;
 
 // Moteur de score PUR (aucun import Graphics/WatchUi, spec §6.2).
 // Event-sourcing : l'état est le replay du journal ; les mutations poussent
-// des événements puis rejouent. L'undo (Phase 2) retirera le dernier event.
+// des événements puis rejouent. État = replay(base + journal) — la base porte
+// l'effet des événements purgés (§7.2).
 class ScoreEngine {
 
     var mConfig;      // MatchConfig
@@ -22,7 +23,7 @@ class ScoreEngine {
     var mLastSequence;  // compteur monotone : jamais réutilisé, même après undo (D-2)
 
     // État de base (§7.2) : état produit par les événements PURGÉS du journal.
-    // replay() = base + journal. Journal plein → base nulle ; après purge → base avancée.
+    // replay() = base + journal. Rien de purgé → base = état initial ; après purge → base avancée.
     var mBasePhase;
     var mBaseScoreMe;
     var mBaseScoreOpp;
@@ -232,6 +233,7 @@ class ScoreEngine {
     function trimEvents(maxKeep as Number) as Void {
         var size = mEvents.size();
         if (size <= maxKeep) { return; }
+        if (maxKeep < 1) { maxKeep = 1; }
         var drop = size - maxKeep;
         copyBaseToDerived();
         for (var i = 0; i < drop; i += 1) {
@@ -249,4 +251,11 @@ class ScoreEngine {
 
     function getMatchId() as String { return mMatchId; }
     function getLastSequence() as Number { return mLastSequence; }
+
+    // Filet D-2 : le compteur ne peut qu'augmenter (l'undo ne décrémente jamais).
+    // Utilisé au restore depuis la meta "ls" (Task 3) : le dernier event
+    // journalisé peut avoir une seq < mLastSequence après un undo.
+    function setLastSequence(seq as Number) as Void {
+        if (seq > mLastSequence) { mLastSequence = seq; }
+    }
 }

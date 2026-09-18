@@ -445,6 +445,37 @@ function test_engine_trim_events(logger as Logger) as Boolean {
 }
 
 (:test)
+function test_engine_restore_sequence_monotonic(logger as Logger) as Boolean {
+    var e1 = new ScoreEngine(MatchPresets.get(2), "m1");
+    e1.pointMe();
+    e1.pointOpponent();
+    e1.pointMe();       // seq 3
+    e1.undo();          // journal 2 (seq 1-2), mLastSequence = 3 (D-2)
+    Test.assertEqualMessage(3, e1.getLastSequence(), "compteur conserve apres undo");
+    var e2 = new ScoreEngine(MatchPresets.get(2), "m1");
+    e2.restore(e1.getBaseState(), e1.getEvents());
+    e2.setLastSequence(e1.getLastSequence());   // filet meta "ls" (câblé Task 3)
+    e2.pointMe();
+    Test.assertEqualMessage(4, e2.getEvent(2)[2], "sequence jamais reutilisee apres restore (D-2)");
+    Test.assertEqualMessage("m1:4", e2.getEventId(2), "id m1:4");
+    return true;
+}
+
+(:test)
+function test_engine_undo_after_trim(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(0), "m1");   // 11 pts, sans cap
+    enginePoints(e, 5, 3);       // 8 events, 5-3, PLAYING
+    e.trimEvents(4);             // base = 2-2, tail 4 events (seq 5-8)
+    Test.assertEqualMessage(5, e.getScoreMe(), "etat intact apres purge : 5-3");
+    Test.assertEqualMessage(3, e.getScoreOpp(), "3");
+    e.undo();                    // retire seq 8 → 4-3
+    Test.assertEqualMessage(4, e.getScoreMe(), "undo apres purge : 4-3");
+    Test.assertEqualMessage(3, e.getEvents().size(), "journal 3");
+    Test.assertEqualMessage(5, e.getEvent(0)[2], "premier event retenu : seq 5");
+    return true;
+}
+
+(:test)
 function test_engine_match_locked(logger as Logger) as Boolean {
     var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 0);
