@@ -224,7 +224,7 @@ class MatchView extends WatchUi.View {
         dc.drawText(w / 4, h / 2 + fLarge, Graphics.FONT_SMALL, "MOI", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(3 * w / 4, h / 2 + fLarge, Graphics.FONT_SMALL, "LUI", Graphics.TEXT_JUSTIFY_CENTER);
         drawFooter(dc, w, h,
-            MatchPresets.label(mSetupIndex) + "  SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp());
+            MatchPresets.shortLabel(mSetupIndex) + "  SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp());
     }
 
     function drawConfirmSet(dc as Dc, w as Number, h as Number) as Void {
