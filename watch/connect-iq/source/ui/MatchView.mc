@@ -198,6 +198,15 @@ class MatchView extends WatchUi.View {
         }
     }
 
+    // Position de la sous-ligne sous le gros score : jamais sous le footer.
+    // (min entre la position naturelle h/2+fLarge et le haut du footer —
+    // sinon chevauchement sur les petits écrans, constaté instinct2/fr55.)
+    function subLineY(h as Number, fLarge as Number, fSmall as Number) as Number {
+        var footerTop = h * 7 / 8 - fSmall;
+        var y = h / 2 + fLarge;
+        return (y > footerTop - fSmall) ? footerTop - fSmall : y;
+    }
+
     function drawSetup(dc as Dc, w as Number, h as Number) as Void {
         var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fMedium = dc.getFontHeight(Graphics.FONT_MEDIUM);
@@ -220,12 +229,14 @@ class MatchView extends WatchUi.View {
     }
 
     function drawScore(dc as Dc, w as Number, h as Number) as Void {
+        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "SET " + mEngine.getSetNumber(), Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
             mEngine.getScoreMe() + " - " + mEngine.getScoreOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 4, h / 2 + fLarge, Graphics.FONT_SMALL, "MOI", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(3 * w / 4, h / 2 + fLarge, Graphics.FONT_SMALL, "LUI", Graphics.TEXT_JUSTIFY_CENTER);
+        var ySub = subLineY(h, fLarge, fSmall);
+        dc.drawText(w / 4, ySub, Graphics.FONT_SMALL, "MOI", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(3 * w / 4, ySub, Graphics.FONT_SMALL, "LUI", Graphics.TEXT_JUSTIFY_CENTER);
         drawFooter(dc, w, h,
             MatchPresets.shortLabel(mSetupIndex) + "  SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp());
     }
@@ -244,22 +255,24 @@ class MatchView extends WatchUi.View {
     }
 
     function drawSetResult(dc as Dc, w as Number, h as Number) as Void {
+        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "SET " + mEngine.getSetNumber() + " TERMINE", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
             mEngine.getLastSetScoreMe() + " - " + mEngine.getLastSetScoreOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, h / 2 + fLarge, Graphics.FONT_SMALL,
+        dc.drawText(w / 2, subLineY(h, fLarge, fSmall), Graphics.FONT_SMALL,
             "SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp(), Graphics.TEXT_JUSTIFY_CENTER);
         drawFooter(dc, w, h, "DOWN = SET SUIV.");
     }
 
     function drawMatchFinished(dc as Dc, w as Number, h as Number) as Void {
+        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
         dc.drawText(w / 2, h / 4, Graphics.FONT_SMALL, "MATCH TERMINE", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
             mEngine.getSetsMe() + " - " + mEngine.getSetsOpp(), Graphics.TEXT_JUSTIFY_CENTER);
         var winner = (mEngine.getSetsMe() > mEngine.getSetsOpp()) ? "MOI GAGNE" : "LUI GAGNE";
-        dc.drawText(w / 2, h / 2 + fLarge, Graphics.FONT_SMALL, winner, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, subLineY(h, fLarge, fSmall), Graphics.FONT_SMALL, winner, Graphics.TEXT_JUSTIFY_CENTER);
         drawFooter(dc, w, h, "DOWN = NOUVEAU");
     }
 
