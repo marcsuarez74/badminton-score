@@ -5,3 +5,4 @@ bin/
 *.pem
 .env
 *.pdf
+prototypes/button-test/sideload/
