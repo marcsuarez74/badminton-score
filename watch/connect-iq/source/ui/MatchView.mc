@@ -185,8 +185,18 @@ class MatchView extends WatchUi.View {
         }
     }
 
-    function drawSetup(dc as Dc, w as Number, h as Number) as Void {
+    // Ligne d'aide du bas : FONT_SMALL si le texte tient, FONT_TINY sinon
+    // (lisibilité §15.2 — FONT_TINY seul était illisible sur AMOLED 454).
+    function drawFooter(dc as Dc, w as Number, h as Number, text as String) as Void {
         var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
+        if (dc.getTextWidthInPixels(text, Graphics.FONT_SMALL) > w - 20) {
+            dc.drawText(w / 2, h - fSmall - h / 20, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        } else {
+            dc.drawText(w / 2, h - fSmall - h / 20, Graphics.FONT_SMALL, text, Graphics.TEXT_JUSTIFY_CENTER);
+        }
+    }
+
+    function drawSetup(dc as Dc, w as Number, h as Number) as Void {
         var fMedium = dc.getFontHeight(Graphics.FONT_MEDIUM);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "FORMAT", Graphics.TEXT_JUSTIFY_CENTER);
         var y = h / 2 - (3 * fMedium / 2);
@@ -195,20 +205,18 @@ class MatchView extends WatchUi.View {
             dc.drawText(w / 2, y, Graphics.FONT_MEDIUM, marker + MatchPresets.label(i), Graphics.TEXT_JUSTIFY_CENTER);
             y += 3 * fMedium / 2;
         }
-        dc.drawText(w / 2, h - fSmall - h / 20, Graphics.FONT_TINY, "START = OK", Graphics.TEXT_JUSTIFY_CENTER);
+        drawFooter(dc, w, h, "START = OK");
     }
 
     function drawScore(dc as Dc, w as Number, h as Number) as Void {
-        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "SET " + mEngine.getSetNumber(), Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
             mEngine.getScoreMe() + " - " + mEngine.getScoreOpp(), Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 4, h / 2 + fLarge, Graphics.FONT_SMALL, "MOI", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(3 * w / 4, h / 2 + fLarge, Graphics.FONT_SMALL, "LUI", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, h - fSmall - h / 20, Graphics.FONT_TINY,
-            MatchPresets.label(mSetupIndex) + "  SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp(),
-            Graphics.TEXT_JUSTIFY_CENTER);
+        drawFooter(dc, w, h,
+            MatchPresets.label(mSetupIndex) + "  SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp());
     }
 
     function drawConfirmSet(dc as Dc, w as Number, h as Number) as Void {
@@ -216,29 +224,27 @@ class MatchView extends WatchUi.View {
         dc.drawText(w / 2, h / 4, Graphics.FONT_SMALL, "TERMINER SET " + mEngine.getSetNumber() + " ?", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
             mEngine.getScoreMe() + " - " + mEngine.getScoreOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, 3 * h / 4, Graphics.FONT_SMALL, "DOWN=OUI  BACK=NON", Graphics.TEXT_JUSTIFY_CENTER);
+        drawFooter(dc, w, h, "DOWN=OUI  BACK=NON");
     }
 
     function drawSetResult(dc as Dc, w as Number, h as Number) as Void {
-        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "SET " + mEngine.getSetNumber() + " TERMINE", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
             mEngine.getLastSetScoreMe() + " - " + mEngine.getLastSetScoreOpp(), Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 + fLarge, Graphics.FONT_SMALL,
             "SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, h - fSmall - h / 20, Graphics.FONT_TINY, "DOWN = SET SUIV.", Graphics.TEXT_JUSTIFY_CENTER);
+        drawFooter(dc, w, h, "DOWN = SET SUIV.");
     }
 
     function drawMatchFinished(dc as Dc, w as Number, h as Number) as Void {
-        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
         dc.drawText(w / 2, h / 4, Graphics.FONT_SMALL, "MATCH TERMINE", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
             mEngine.getSetsMe() + " - " + mEngine.getSetsOpp(), Graphics.TEXT_JUSTIFY_CENTER);
         var winner = (mEngine.getSetsMe() > mEngine.getSetsOpp()) ? "MOI GAGNE" : "LUI GAGNE";
         dc.drawText(w / 2, h / 2 + fLarge, Graphics.FONT_SMALL, winner, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, h - fSmall - h / 20, Graphics.FONT_TINY, "DOWN = NOUVEAU", Graphics.TEXT_JUSTIFY_CENTER);
+        drawFooter(dc, w, h, "DOWN = NOUVEAU");
     }
 
     function drawMenu(dc as Dc, w as Number, h as Number) as Void {
