@@ -21,11 +21,23 @@ class ScoreEngine {
     var mMatchId;       // id du match — préfixe des ids d'événements (§7.1)
     var mLastSequence;  // compteur monotone : jamais réutilisé, même après undo (D-2)
 
+    // État de base (§7.2) : état produit par les événements PURGÉS du journal.
+    // replay() = base + journal. Journal plein → base nulle ; après purge → base avancée.
+    var mBasePhase;
+    var mBaseScoreMe;
+    var mBaseScoreOpp;
+    var mBaseSetsMe;
+    var mBaseSetsOpp;
+    var mBaseSetNumber;
+    var mBaseLastSetScoreMe;
+    var mBaseLastSetScoreOpp;
+
     function initialize(config, matchId) {
         mConfig = config;
         mMatchId = matchId;
         mEvents = [];
         mLastSequence = 0;
+        resetBase();
         replay();
     }
 
@@ -65,6 +77,7 @@ class ScoreEngine {
         mMatchId = matchId;
         mEvents = [];
         mLastSequence = 0;
+        resetBase();
         replay();
     }
 
@@ -91,17 +104,45 @@ class ScoreEngine {
     }
 
     function replay() as Void {
-        mPhase = ScorePhase.PLAYING;
-        mScoreMe = 0;
-        mScoreOpp = 0;
-        mSetsMe = 0;
-        mSetsOpp = 0;
-        mSetNumber = 1;
-        mLastSetScoreMe = 0;
-        mLastSetScoreOpp = 0;
+        copyBaseToDerived();
         for (var i = 0; i < mEvents.size(); i += 1) {
             applyEvent(mEvents[i]);
         }
+    }
+
+    // ---- état de base (Phase 3, §7.2) ----
+
+    function resetBase() as Void {
+        mBasePhase = ScorePhase.PLAYING;
+        mBaseScoreMe = 0;
+        mBaseScoreOpp = 0;
+        mBaseSetsMe = 0;
+        mBaseSetsOpp = 0;
+        mBaseSetNumber = 1;
+        mBaseLastSetScoreMe = 0;
+        mBaseLastSetScoreOpp = 0;
+    }
+
+    function copyBaseToDerived() as Void {
+        mPhase = mBasePhase;
+        mScoreMe = mBaseScoreMe;
+        mScoreOpp = mBaseScoreOpp;
+        mSetsMe = mBaseSetsMe;
+        mSetsOpp = mBaseSetsOpp;
+        mSetNumber = mBaseSetNumber;
+        mLastSetScoreMe = mBaseLastSetScoreMe;
+        mLastSetScoreOpp = mBaseLastSetScoreOpp;
+    }
+
+    function copyDerivedToBase() as Void {
+        mBasePhase = mPhase;
+        mBaseScoreMe = mScoreMe;
+        mBaseScoreOpp = mScoreOpp;
+        mBaseSetsMe = mSetsMe;
+        mBaseSetsOpp = mSetsOpp;
+        mBaseSetNumber = mSetNumber;
+        mBaseLastSetScoreMe = mLastSetScoreMe;
+        mBaseLastSetScoreOpp = mLastSetScoreOpp;
     }
 
     function applyEvent(e) as Void {
@@ -166,4 +207,46 @@ class ScoreEngine {
     // ---- protocole (§7.1/§8.2) ----
     function getEvent(i as Number) as Array { return mEvents[i]; }
     function getEventId(i as Number) as String { return mMatchId + ":" + mEvents[i][2]; }
+
+    // Restauration (§7.2) : base = état produit par les événements absents du
+    // journal ; events = journal conservé (6 slots). Ordre base :
+    // [phase, scoreMe, scoreOpp, setsMe, setsOpp, setNumber, lastSetMe, lastSetOpp].
+    // La séquence poursuit après restauration : le dernier event du journal
+    // porte toujours mLastSequence (invariant appendEvent).
+    function restore(base as Array, events as Array) as Void {
+        mBasePhase = base[0];
+        mBaseScoreMe = base[1];
+        mBaseScoreOpp = base[2];
+        mBaseSetsMe = base[3];
+        mBaseSetsOpp = base[4];
+        mBaseSetNumber = base[5];
+        mBaseLastSetScoreMe = base[6];
+        mBaseLastSetScoreOpp = base[7];
+        mEvents = events;
+        mLastSequence = events.size() > 0 ? events[events.size() - 1][2] : mLastSequence;
+        replay();
+    }
+
+    // Purge §7.2 : historique borné — au-delà de maxKeep, retire les plus
+    // anciens et avance la base de leur effet. Jamais le dernier event.
+    function trimEvents(maxKeep as Number) as Void {
+        var size = mEvents.size();
+        if (size <= maxKeep) { return; }
+        var drop = size - maxKeep;
+        copyBaseToDerived();
+        for (var i = 0; i < drop; i += 1) {
+            applyEvent(mEvents[i]);
+        }
+        copyDerivedToBase();
+        mEvents = mEvents.slice(drop, size);
+        replay();
+    }
+
+    function getBaseState() as Array {
+        return [mBasePhase, mBaseScoreMe, mBaseScoreOpp, mBaseSetsMe, mBaseSetsOpp,
+            mBaseSetNumber, mBaseLastSetScoreMe, mBaseLastSetScoreOpp];
+    }
+
+    function getMatchId() as String { return mMatchId; }
+    function getLastSequence() as Number { return mLastSequence; }
 }
