@@ -304,6 +304,36 @@ function test_engine_undo_match_finished_refused(logger as Logger) as Boolean {
 }
 
 (:test)
+function test_engine_undo_set_finished(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 19);          // SET_FINISHED auto (§4.2)
+    Test.assertEqualMessage(1, e.getPhase(), "SET_RESULT apres 21-19");
+    Test.assertEqualMessage(1, e.getSetsMe(), "sets 1-0");
+    e.undo();                          // reprendre le set terminé
+    Test.assertEqualMessage(0, e.getPhase(), "set repris : PLAYING");
+    Test.assertEqualMessage(21, e.getScoreMe(), "score du set restaure : 21");
+    Test.assertEqualMessage(19, e.getScoreOpp(), "score du set restaure : 19");
+    Test.assertEqualMessage(0, e.getSetsMe(), "sets recalcules : 0-0");
+    Test.assertEqualMessage(40, e.getEvents().size(), "journal : 41 - 1");
+    return true;
+}
+
+(:test)
+function test_engine_undo_set_changed(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 19);
+    e.changeSet();                     // SET_CHANGED apres SET_FINISHED
+    Test.assertEqualMessage(2, e.getSetNumber(), "set 2");
+    e.undo();                          // retour au set précédent
+    Test.assertEqualMessage(1, e.getPhase(), "retour : SET_RESULT (fin du set 1 toujours enregistrée)");
+    Test.assertEqualMessage(1, e.getSetNumber(), "retour au set 1");
+    Test.assertEqualMessage(1, e.getSetsMe(), "sets 1-0");
+    Test.assertEqualMessage(21, e.getLastSetScoreMe(), "score du set 1 restaure");
+    Test.assertEqualMessage(19, e.getLastSetScoreOpp(), "19");
+    return true;
+}
+
+(:test)
 function test_engine_match_locked(logger as Logger) as Boolean {
     var e = new ScoreEngine(MatchPresets.get(2));
     enginePoints(e, 21, 0);
