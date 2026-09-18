@@ -82,6 +82,7 @@ class ButtonTestView extends WatchUi.View {
     }
 
     function onUpdate(dc as Dc) as Void {
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
         var w = dc.getWidth();
         var h = dc.getHeight();
