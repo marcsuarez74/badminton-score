@@ -1,6 +1,6 @@
 # Phase 2 — Moteur complet (UNDO + événements) — Plan d'implémentation
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal :** Compléter le moteur (UNDO §4.5/D7, métadonnées d'événements §7.1/§8.2) et l'UI (menu inline 4 items §5), couvrir tous les cas §15.1 hors persistance (Phase 3).
 
@@ -24,14 +24,14 @@
 - Modify: `watch/connect-iq/source/engine/ScoreEngine.mc` (ajout `undo()` après `newMatch`)
 - Test: `watch/connect-iq/source/tests/EngineTest.mc` (4 tests, section « UNDO » après `test_engine_manual_set_change_tie_not_credited`)
 
-- [ ] **Step 1: Créer la branche**
+- [x] **Step 1: Créer la branche**
 
 ```bash
 cd /Users/marcsuarez/Documents/badminton-score
 git checkout main -q && git pull -q && git checkout -b phase-2
 ```
 
-- [ ] **Step 2: Écrire les 4 tests (rouge attendu : `undo()` n'existe pas → build échoue)**
+- [x] **Step 2: Écrire les 4 tests (rouge attendu : `undo()` n'existe pas → build échoue)**
 
 Dans `EngineTest.mc`, après `test_engine_manual_set_change_tie_not_credited` (fin de la section transitions, avant la section match_locked... à placer juste après `test_engine_manual_set_change_tie_not_credited`), insérer :
 
@@ -89,7 +89,7 @@ function test_engine_undo_match_finished_refused(logger as Logger) as Boolean {
 }
 ```
 
-- [ ] **Step 3: Vérifier le rouge**
+- [x] **Step 3: Vérifier le rouge**
 
 ```bash
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
@@ -98,7 +98,7 @@ SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")
 ```
 Attendu : **échec de compilation** (`Unknown Class or Module 'undo'` / cannot find symbol `undo`).
 
-- [ ] **Step 4: Implémenter `undo()`** — dans `ScoreEngine.mc`, après `newMatch` :
+- [x] **Step 4: Implémenter `undo()`** — dans `ScoreEngine.mc`, après `newMatch` :
 
 ```monkeyc
     // UNDO (§4.5/D7) : retire le dernier événement du journal (quel qu'il
@@ -113,7 +113,7 @@ Attendu : **échec de compilation** (`Unknown Class or Module 'undo'` / cannot f
     }
 ```
 
-- [ ] **Step 5: Vérifier le vert**
+- [x] **Step 5: Vérifier le vert**
 
 ```bash
 "$SDK/bin/monkeyc" -d epix2pro51mm -f watch/connect-iq/monkey.jungle \
@@ -123,7 +123,7 @@ open "$SDK/bin/ConnectIQ.app" && sleep 6
 ```
 Attendu : `PASSED (passed=25, failed=0, errors=0)` (21 + 4).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add watch/connect-iq/source/engine/ScoreEngine.mc watch/connect-iq/source/tests/EngineTest.mc
@@ -138,7 +138,7 @@ git commit -m "feat(phase2): UNDO moteur — retrait du dernier event + replay, 
 - Test: `watch/connect-iq/source/tests/EngineTest.mc` (2 tests, dans la section UNDO)
 - Le moteur ne change pas (l'undo est générique) : ces tests peuvent passer immédiatement — ce sont des tests de conformité §15.1. S'ils échouent, c'est un bug de `replay()`/`undo()` : debugger, ne pas modifier l'implémentation « au cas où ».
 
-- [ ] **Step 1: Écrire les 2 tests** (dans la section UNDO de `EngineTest.mc`, après `test_engine_undo_match_finished_refused`) :
+- [x] **Step 1: Écrire les 2 tests** (dans la section UNDO de `EngineTest.mc`, après `test_engine_undo_match_finished_refused`) :
 
 ```monkeyc
 (:test)
@@ -172,7 +172,7 @@ function test_engine_undo_set_changed(logger as Logger) as Boolean {
 }
 ```
 
-- [ ] **Step 2: Vérifier le vert**
+- [x] **Step 2: Vérifier le vert**
 
 ```bash
 "$SDK/bin/monkeyc" -d epix2pro51mm -f watch/connect-iq/monkey.jungle \
@@ -182,7 +182,7 @@ open "$SDK/bin/ConnectIQ.app" && sleep 6
 ```
 Attendu : `PASSED (passed=27, failed=0, errors=0)`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add watch/connect-iq/source/tests/EngineTest.mc
@@ -202,14 +202,14 @@ git commit -m "test(phase2): undo SET_FINISHED (set repris) et SET_CHANGED (reto
 **Format du journal (§7.2 : tableaux positionnels compacts) :**
 `[type, arg, sequence, timestamp, prevMe, prevOpp]` — `arg` = winner (SET_*) ou 0 ; `timestamp` = `System.getTimer()` (ms, Long) ; `prevMe/prevOpp` = score dérivé **avant** l'application de l'event (append a lieu avant replay). `id` (non stocké) = `matchId + ":" + sequence`.
 
-- [ ] **Step 1: Ajouter TYPE_UNDO** — dans `ScoreEvent.mc`, après `TYPE_MATCH_FINISHED` :
+- [x] **Step 1: Ajouter TYPE_UNDO** — dans `ScoreEvent.mc`, après `TYPE_MATCH_FINISHED` :
 
 ```monkeyc
     const TYPE_UNDO = 5;              // réservé protocole sync Phase 4a — jamais journalisé
                                       // (undo = retrait du dernier event, §4.5)
 ```
 
-- [ ] **Step 2: Écrire les 3 tests + adapter le test existant (rouge attendu : signatures absentes → build échoue)**
+- [x] **Step 2: Écrire les 3 tests + adapter le test existant (rouge attendu : signatures absentes → build échoue)**
 
 Dans `EngineTest.mc`, section UNDO, ajouter :
 
@@ -286,7 +286,7 @@ Adapter le test existant `test_engine_new_match_reset` (ligne `e.newMatch(MatchP
 
 Et l'initialisation de `test_engine_initial_state` reste sans matchId ? NON — toutes les constructions passent un matchId : remplacer dans **tous** les tests existants `new ScoreEngine(MatchPresets.get(...))` par `new ScoreEngine(MatchPresets.get(...), "m1")` (9 occurrences : initial_state, points_and_replay, deuce_21, cap_21, set_finished_normal, set_finished_opponent, deuce_15, cap_15, deuce_11, no_cap_11, match_finished_2_sets, manual_set_change_finishes_match, set_result_transition, manual_set_change_leader_credited, manual_set_change_tie_not_credited, match_locked, new_match_reset, undo_simple, undo_multi, undo_empty, undo_match_finished_refused, undo_set_finished, undo_set_changed — tout avec `"m1"`, sauf `new_match_reset` qui utilise `"m2"` en `newMatch`).
 
-- [ ] **Step 3: Vérifier le rouge**
+- [x] **Step 3: Vérifier le rouge**
 
 ```bash
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
@@ -295,7 +295,7 @@ SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")
 ```
 Attendu : échec (constructeur `ScoreEngine(config, matchId)` inconnu / `getEventId` inconnu).
 
-- [ ] **Step 4: Implémenter le moteur** — dans `ScoreEngine.mc` :
+- [x] **Step 4: Implémenter le moteur** — dans `ScoreEngine.mc` :
 
 En tête : `import Toybox.System;` (le moteur reste PUR : pas de Graphics/WatchUi — System est autorisé, §6.2).
 
@@ -353,7 +353,7 @@ Getters protocole (à la fin, après `getEvents`) :
     function getEventId(i as Number) as String { return mMatchId + ":" + mEvents[i][2]; }
 ```
 
-- [ ] **Step 5: Adapter MatchView** — champ + génération d'id :
+- [x] **Step 5: Adapter MatchView** — champ + génération d'id :
 
 Après `var mEngine = null;` :
 
@@ -382,7 +382,7 @@ Nouvelle méthode (après `startMatch`) :
     }
 ```
 
-- [ ] **Step 6: Vérifier le vert**
+- [x] **Step 6: Vérifier le vert**
 
 ```bash
 "$SDK/bin/monkeyc" -d epix2pro51mm -f watch/connect-iq/monkey.jungle \
@@ -392,7 +392,7 @@ open "$SDK/bin/ConnectIQ.app" && sleep 6
 ```
 Attendu : `PASSED (passed=30, failed=0, errors=0)`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add watch/connect-iq/source/engine/ScoreEvent.mc watch/connect-iq/source/engine/ScoreEngine.mc \
@@ -409,7 +409,7 @@ git commit -m "feat(phase2): métadonnées d'événements — matchId, séquence
 
 Pas de test Run No Evil (UI) — validation simu Task 5. Build × 5 + tests verts exigés.
 
-- [ ] **Step 1: UP = UNDO en SCORE** — dans `onUp`, remplacer la ligne commentée « UNDO = Phase 2 » :
+- [x] **Step 1: UP = UNDO en SCORE** — dans `onUp`, remplacer la ligne commentée « UNDO = Phase 2 » :
 
 ```monkeyc
         if (mScreen == MatchScreen.SCORE) {
@@ -422,7 +422,7 @@ Pas de test Run No Evil (UI) — validation simu Task 5. Build × 5 + tests vert
 
 (la fin de la fonction garde `return true;` pour les autres écrans)
 
-- [ ] **Step 2: Navigation menu 4 items** — dans `onUp` (branche MENU) remplacer `% 2` :
+- [x] **Step 2: Navigation menu 4 items** — dans `onUp` (branche MENU) remplacer `% 2` :
 
 ```monkeyc
         if (mScreen == MatchScreen.MENU) {
@@ -442,7 +442,7 @@ Dans `onDown` (branche MENU) :
         }
 ```
 
-- [ ] **Step 3: menuSelect 4 branches** — remplacer la fonction (sortie unique : `System.exit()` en dernier — leçon Phase 1, « unreachable » sinon) :
+- [x] **Step 3: menuSelect 4 branches** — remplacer la fonction (sortie unique : `System.exit()` en dernier — leçon Phase 1, « unreachable » sinon) :
 
 ```monkeyc
     // Menu inline §5 : Reprendre / Changer de format / Réinitialiser / Quitter.
@@ -465,7 +465,7 @@ Dans `onDown` (branche MENU) :
     }
 ```
 
-- [ ] **Step 4: drawMenu 4 items, centrage adaptatif** (leçon Phase 1 : items entre le titre et le bas de l'écran, compression si l'espace manque — fr55) — remplacer :
+- [x] **Step 4: drawMenu 4 items, centrage adaptatif** (leçon Phase 1 : items entre le titre et le bas de l'écran, compression si l'espace manque — fr55) — remplacer :
 
 ```monkeyc
     function drawMenu(dc as Dc, w as Number, h as Number) as Void {
@@ -490,7 +490,7 @@ Dans `onDown` (branche MENU) :
 
 Vérification métriques attendue : epix items 124/197/270/343 (bas 402 ≤ 454) ; instinct2 48/81/114/147 (bas 174 ≤ 176) ; fr55 compressé spacing 40, items ~53/93/133/173 (bas 207 ≤ 208).
 
-- [ ] **Step 5: Build × 5 + tests verts**
+- [x] **Step 5: Build × 5 + tests verts**
 
 ```bash
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
@@ -505,7 +505,7 @@ open "$SDK/bin/ConnectIQ.app" && sleep 6
 ```
 Attendu : 5 builds OK, `PASSED (passed=30, failed=0, errors=0)`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add watch/connect-iq/source/ui/MatchView.mc
@@ -518,7 +518,7 @@ git commit -m "feat(phase2): UP=UNDO en SCORE + menu inline 4 items (Reprendre/F
 
 **Files:** aucun — le contrôleur lance le simu et fournit le scénario ; le propriétaire valide.
 
-- [ ] **Step 1:** Relancer le simulateur epix2pro51mm (release build Task 4). Scénario :
+- [x] **Step 1:** Relancer le simulateur epix2pro51mm (release build Task 4). Scénario :
   1. Match en 21 pts : compter 3 points → UP×3 → retour 0-0 **sans négatif**
   2. Compter jusqu'à 21-19 (SET_RESULT, sets 1-0) → UP → **retour en SCORE à 21-19, sets 0-0** (set repris)
   3. Recompter 21-19 → DOWN (set 2) → UP → **retour à SET_RESULT « SET 1 TERMINE », sets 1-0**
@@ -527,8 +527,8 @@ git commit -m "feat(phase2): UP=UNDO en SCORE + menu inline 4 items (Reprendre/F
   6. FORMAT → écran Setup → START → **nouveau match** (format choisi)
   7. Menu → RESET → score **0-0 set 1** immédiat
   8. Menu → QUITTER → l'app se ferme
-- [ ] **Step 2:** Vérif rapide instinct2 (menu 4 items sans débordement + undo simple).
-- [ ] **Step 3:** Résultats consignés dans `docs/superpowers/notes/phase-2-sim-results.md` + commit `docs(phase2): résultats simulateur undo + menu`.
+- [x] **Step 2:** Vérif rapide instinct2 (menu 4 items sans débordement + undo simple).
+- [x] **Step 3:** Résultats consignés dans `docs/superpowers/notes/phase-2-sim-results.md` + commit `docs(phase2): résultats simulateur undo + menu`.
 
 ---
 
