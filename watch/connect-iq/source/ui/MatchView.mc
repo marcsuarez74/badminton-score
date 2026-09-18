@@ -81,8 +81,8 @@ class MatchView extends WatchUi.View {
             return true;
         }
         if (mScreen == MatchScreen.MENU) {
-            mScreen = MatchScreen.SCORE;
-            WatchUi.requestUpdate();
+            mScreen = MatchScreen.SCORE;   // défaut, corrigé par syncScreen si phase ≠ PLAYING
+            syncScreen();                  // retour à l'écran de la phase (SET_RESULT/MATCH_FINISHED) + save
             return true;
         }
         return true;
@@ -145,8 +145,10 @@ class MatchView extends WatchUi.View {
     }
 
     function onMenuButton() as Boolean {
-        if (mScreen == MatchScreen.SCORE) {
-            mScreen = MatchScreen.MENU;          // UP-long = menu inline
+        // §3.2 : menu inline = seul chemin de sortie → accessible depuis tous
+        // les écrans de match (pas SETUP : BACK y ferme l'app naturellement).
+        if (mScreen != MatchScreen.SETUP && mScreen != MatchScreen.MENU) {
+            mScreen = MatchScreen.MENU;
             mMenuIndex = 0;
             WatchUi.requestUpdate();
             return true;
@@ -198,8 +200,8 @@ class MatchView extends WatchUi.View {
     // (Labels compacts « FORMAT »/« RESET » : écrans ronds, leçon Phase 1.)
     function menuSelect() as Boolean {
         if (mMenuIndex == 0) {
-            mScreen = MatchScreen.SCORE;      // Reprendre
-            WatchUi.requestUpdate();
+            mScreen = MatchScreen.SCORE;      // Reprendre (défaut, syncScreen corrige si phase ≠ PLAYING)
+            syncScreen();
         } else if (mMenuIndex == 1) {
             mScreen = MatchScreen.SETUP;      // Changer de format (START = nouveau match)
             WatchUi.requestUpdate();
