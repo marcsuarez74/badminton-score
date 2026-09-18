@@ -191,7 +191,7 @@ class MatchView extends WatchUi.View {
     function drawFooter(dc as Dc, w as Number, h as Number, text as String) as Void {
         var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var y = h * 7 / 8 - fSmall;
-        if (dc.getTextWidthInPixels(text, Graphics.FONT_SMALL) > w * 4 / 5) {
+        if (dc.getTextWidthInPixels(text, Graphics.FONT_SMALL) > w * 2 / 3) {
             dc.drawText(w / 2, y, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
         } else {
             dc.drawText(w / 2, y, Graphics.FONT_SMALL, text, Graphics.TEXT_JUSTIFY_CENTER);
