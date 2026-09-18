@@ -33,4 +33,11 @@ module MatchPresets {
         if (index == 1) { return "15 POINTS"; }
         return "21 POINTS";
     }
+
+    // Label compact pour le footer de l'écran SCORE (zone basse étroite sur rond).
+    function shortLabel(index as Number) as String {
+        if (index == 0) { return "11 PTS"; }
+        if (index == 1) { return "15 PTS"; }
+        return "21 PTS";
+    }
 }
