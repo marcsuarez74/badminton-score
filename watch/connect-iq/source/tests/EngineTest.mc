@@ -56,3 +56,143 @@ function test_rules_11_points(logger as Logger) as Boolean {
     Test.assertEqualMessage(true, Rules.isSetOver(c, 16, 14), "16-14 fini (sans cap, ecart 2)");
     return true;
 }
+
+// ---- ScoreEngine : points + replay + fin de set auto (spec §4.2/§4.3, §15.1) ----
+
+// Compte n points par côté en alternant (helper de test — l'alternance évite
+// de déclencher SET_FINISHED prématurément, ex. 11-0 sur le preset 21).
+// NB : paramètre `nMe` car `me` est un mot réservé Monkey C.
+function enginePoints(e as ScoreEngine, nMe as Number, opp as Number) as Void {
+    var i = 0;
+    var j = 0;
+    while (i < nMe || j < opp) {
+        if (i < nMe) { e.pointMe(); i += 1; }
+        if (j < opp) { e.pointOpponent(); j += 1; }
+    }
+}
+
+(:test)
+function test_engine_initial_state(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    Test.assertEqualMessage(0, e.getScoreMe(), "score me 0-0");
+    Test.assertEqualMessage(0, e.getScoreOpp(), "score opp 0-0");
+    Test.assertEqualMessage(1, e.getSetNumber(), "set 1");
+    Test.assertEqualMessage(0, e.getSetsMe(), "sets me 0");
+    Test.assertEqualMessage(0, e.getSetsOpp(), "sets opp 0");
+    Test.assertEqualMessage(0, e.getPhase(), "phase PLAYING");
+    return true;
+}
+
+(:test)
+function test_engine_points_and_replay(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    e.pointMe();
+    Test.assertEqualMessage(1, e.getScoreMe(), "1-0 apres POINT_ME");
+    e.pointOpponent();
+    e.pointOpponent();
+    Test.assertEqualMessage(1, e.getScoreMe(), "score me 1");
+    Test.assertEqualMessage(2, e.getScoreOpp(), "1-2 apres 2 POINT_OPPONENT");
+    Test.assertEqualMessage(3, e.getEvents().size(), "journal = 3 events (1 POINT_ME + 2 POINT_OPPONENT)");
+    Test.assertEqualMessage(0, e.getPhase(), "toujours PLAYING");
+    return true;
+}
+
+(:test)
+function test_engine_deuce_21(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 20, 20);
+    Test.assertEqualMessage(0, e.getPhase(), "20-20 pas fini");
+    e.pointMe();
+    Test.assertEqualMessage(21, e.getScoreMe(), "21-20");
+    Test.assertEqualMessage(0, e.getPhase(), "21-20 : set NON fini (deuce)");
+    return true;
+}
+
+(:test)
+function test_engine_cap_21(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 29, 29);
+    e.pointMe();
+    Test.assertEqualMessage(30, e.getScoreMe(), "30-29");
+    Test.assertEqualMessage(1, e.getPhase(), "cap atteint -> SET_RESULT");
+    Test.assertEqualMessage(1, e.getSetsMe(), "sets 1-0");
+    return true;
+}
+
+(:test)
+function test_engine_set_finished_normal(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 19);
+    Test.assertEqualMessage(1, e.getPhase(), "21-19 -> SET_RESULT");
+    Test.assertEqualMessage(1, e.getSetsMe(), "sets 1-0");
+    Test.assertEqualMessage(21, e.getLastSetScoreMe(), "dernier set 21");
+    Test.assertEqualMessage(19, e.getLastSetScoreOpp(), "dernier set 19");
+    Test.assertEqualMessage(1, e.getSetNumber(), "setNumber toujours 1 tant que pas de transition");
+    return true;
+}
+
+(:test)
+function test_engine_set_finished_opponent(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 19, 21);
+    Test.assertEqualMessage(1, e.getPhase(), "19-21 -> SET_RESULT");
+    Test.assertEqualMessage(1, e.getSetsOpp(), "sets 0-1");
+    return true;
+}
+
+(:test)
+function test_engine_deuce_15(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(1));
+    enginePoints(e, 14, 14);
+    e.pointMe();
+    Test.assertEqualMessage(15, e.getScoreMe(), "15-14");
+    Test.assertEqualMessage(0, e.getPhase(), "15-14 : set NON fini");
+    return true;
+}
+
+(:test)
+function test_engine_cap_15(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(1));
+    enginePoints(e, 20, 20);
+    e.pointMe();
+    Test.assertEqualMessage(21, e.getScoreMe(), "21-20");
+    Test.assertEqualMessage(1, e.getPhase(), "cap 21 -> SET_RESULT");
+    return true;
+}
+
+(:test)
+function test_engine_deuce_11(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(0));
+    enginePoints(e, 10, 10);
+    e.pointMe();
+    Test.assertEqualMessage(11, e.getScoreMe(), "11-10");
+    Test.assertEqualMessage(0, e.getPhase(), "11-10 : set NON fini");
+    return true;
+}
+
+(:test)
+function test_engine_no_cap_11(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(0));
+    enginePoints(e, 15, 14);
+    Test.assertEqualMessage(0, e.getPhase(), "15-14 non fini (sans plafond)");
+    e.pointMe();
+    Test.assertEqualMessage(16, e.getScoreMe(), "16-14");
+    Test.assertEqualMessage(1, e.getPhase(), "16-14 fini (ecart 2, sans plafond)");
+    return true;
+}
+
+(:test)
+function test_engine_match_finished_2_sets(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 0);
+    e.changeSet();
+    enginePoints(e, 21, 0);
+    Test.assertEqualMessage(2, e.getSetsMe(), "sets 2-0");
+    Test.assertEqualMessage(2, e.getPhase(), "MATCH_FINISHED");
+    Test.assertEqualMessage(46, e.getEvents().size(),
+        "journal: 42 points + 2 SET_FINISHED + 1 SET_CHANGED + 1 MATCH_FINISHED");
+    e.pointMe();   // sans effet : match verrouillé (§4.5)
+    Test.assertEqualMessage(46, e.getEvents().size(), "point ignore apres MATCH_FINISHED");
+    Test.assertEqualMessage(21, e.getScoreMe(), "scores du dernier set figes 21-0");
+    return true;
+}
