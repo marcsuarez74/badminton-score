@@ -6,7 +6,7 @@ using Toybox.WatchUi;
 // onStop (§7.2). Reprise au lancement : MatchView.initialize (§5 Démarrage).
 class BadmintonApp extends Application.AppBase {
 
-    var mView;
+    var mView = null;
 
     function initialize() {
         AppBase.initialize();

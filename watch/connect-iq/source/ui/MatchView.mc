@@ -19,6 +19,8 @@ class MatchView extends WatchUi.View {
     var mSetupIndex = 2;      // 21 POINTS par défaut
     var mMenuIndex = 0;
     var mEngine = null;
+    var mMatchPresetIndex = 2;   // format du match EN COURS (figé au start/restore) —
+                                 // distinct de mSetupIndex (sélection à l'écran Setup)
     var mMatchId = "";        // id du match courant (protocole §7.1)
 
     function initialize() {
@@ -27,7 +29,12 @@ class MatchView extends WatchUi.View {
         var saved = MatchStore.loadMatch();
         if (saved != null) {
             // Match en cours persisté : reprise directe (§5 Démarrage)
-            mSetupIndex = saved["pi"];
+            mMatchPresetIndex = saved["pi"];          // format du match restauré
+            mSetupIndex = mMatchPresetIndex;          // présélection Setup cohérente
+            if (mMatchPresetIndex < 0 || mMatchPresetIndex > 2) {   // clamp anti-corruption (M-1)
+                mMatchPresetIndex = 2;
+                mSetupIndex = 2;
+            }
             mMatchId = saved["mid"];
             mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
             mEngine.restore(saved["base"], saved["events"]);
@@ -57,11 +64,11 @@ class MatchView extends WatchUi.View {
 
     function onBack() as Boolean {
         if (mScreen == MatchScreen.SETUP) {
-            if (mEngine != null) {          // match existant (menu FORMAT / fin de match) : BACK = annuler
-                syncScreen();               // retour SCORE / SET_RESULT / MATCH_FINISHED selon la phase
+            if (mEngine != null) {          // match en cours (menu FORMAT) : BACK = annuler
+                syncScreen();               // retour SCORE / SET_RESULT selon la phase
                 return true;
             }
-            return false;                   // pré-match : BACK ferme l'app (comportement CIQ naturel, Phase 1)
+            return false;                   // pré-match ou match purgé : BACK ferme l'app (CIQ naturel)
         }
         if (mScreen == MatchScreen.SCORE) {
             mEngine.pointOpponent();
@@ -124,6 +131,7 @@ class MatchView extends WatchUi.View {
         }
         if (mScreen == MatchScreen.MATCH_FINISHED) {
             MatchStore.clearMatch();             // résultat consulté → prochain lancement : Setup (§5)
+            mEngine = null;                      // plus de match en cours : ni syncScreen ni persist ne sauvegarderont
             mScreen = MatchScreen.SETUP;         // DOWN = NOUVEAU (format mémorisé)
             WatchUi.requestUpdate();
             return true;
@@ -150,8 +158,10 @@ class MatchView extends WatchUi.View {
 
     function startMatch() as Void {
         mMatchId = genMatchId();
+        mMatchPresetIndex = mSetupIndex;
         MatchStore.savePresetIndex(mSetupIndex);
         mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
+        MatchStore.saveMatch(mEngine, mMatchPresetIndex);   // kill avant 1er point → reprise 0-0
         mScreen = MatchScreen.SCORE;
         WatchUi.requestUpdate();
     }
@@ -159,7 +169,7 @@ class MatchView extends WatchUi.View {
     // Filet de sauvegarde (App.onStop, §7.2) — chaque mutation sauvegarde déjà.
     function persist() as Void {
         if (mEngine != null) {
-            MatchStore.saveMatch(mEngine, mSetupIndex);
+            MatchStore.saveMatch(mEngine, mMatchPresetIndex);
         }
     }
 
@@ -171,9 +181,8 @@ class MatchView extends WatchUi.View {
 
     // Après chaque mutation moteur : aligner l'écran sur la phase dérivée.
     function syncScreen() as Void {
-        if (mEngine != null) {
-            MatchStore.saveMatch(mEngine, mSetupIndex);   // setValue synchrone, §7.2
-        }
+        if (mEngine == null) { return; }   // pas de match : rien à dériver ni à sauvegarder
+        MatchStore.saveMatch(mEngine, mMatchPresetIndex);   // setValue synchrone, §7.2
         var p = mEngine.getPhase();
         if (p == ScorePhase.MATCH_FINISHED) {
             mScreen = MatchScreen.MATCH_FINISHED;
@@ -196,7 +205,8 @@ class MatchView extends WatchUi.View {
             WatchUi.requestUpdate();
         } else if (mMenuIndex == 2) {
             mEngine.newMatch(mEngine.getConfig(), genMatchId());   // Réinitialiser
-            syncScreen();                                          // SCORE + sauvegarde
+            mScreen = MatchScreen.SCORE;   // sortir du menu AVANT syncScreen (garde MENU de syncScreen)
+            syncScreen();                  // + sauvegarde du nouveau match
         } else {
             System.exit();                    // Quitter — dernier bloc, rien après
         }
@@ -287,7 +297,7 @@ class MatchView extends WatchUi.View {
         dc.drawText(w / 4, ySub, Graphics.FONT_SMALL, "MOI", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(3 * w / 4, ySub, Graphics.FONT_SMALL, "LUI", Graphics.TEXT_JUSTIFY_CENTER);
         drawFooter(dc, w, h,
-            MatchPresets.shortLabel(mSetupIndex) + "  SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp());
+            MatchPresets.shortLabel(mMatchPresetIndex) + "  SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp());
     }
 
     function drawConfirmSet(dc as Dc, w as Number, h as Number) as Void {
