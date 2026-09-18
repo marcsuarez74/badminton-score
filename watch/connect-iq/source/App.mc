@@ -1,9 +1,7 @@
 using Toybox.Application;
-import Toybox.Graphics;
 using Toybox.WatchUi;
 
-// Stub de squelette (Task 1) : fournit l'entry point exige par monkeyc.
-// Remplace par la vraie app en Task 5 (getInitialView -> MatchView/MatchDelegate).
+// Persistance onStart/onStop : Phase 3 (spec §16). Phase 1 = session volatile.
 class BadmintonApp extends Application.AppBase {
 
     function initialize() {
@@ -11,23 +9,7 @@ class BadmintonApp extends Application.AppBase {
     }
 
     function getInitialView() {
-        return [new StubView(), new StubDelegate()];
-    }
-}
-
-class StubView extends WatchUi.View {
-
-    function initialize() {
-        View.initialize();
-    }
-
-    function onUpdate(dc as Dc) as Void {
-    }
-}
-
-class StubDelegate extends WatchUi.BehaviorDelegate {
-
-    function initialize() {
-        BehaviorDelegate.initialize();
+        var view = new MatchView();
+        return [view, new MatchDelegate(view)];
     }
 }
