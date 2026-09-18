@@ -308,16 +308,21 @@ class MatchView extends WatchUi.View {
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "MENU", Graphics.TEXT_JUSTIFY_CENTER);
         var items = ["REPRENDRE", "FORMAT", "RESET", "QUITTER"];
         var titleBottom = h / 8 + fSmall;
-        var zone = h - titleBottom;                 // pas de footer sur le menu
-        var spacing = 5 * fMedium / 4;
-        if (spacing * 3 + fMedium > zone) {
-            spacing = (zone - fMedium) / 3;         // compression (fr55)
+        var bottomLimit = h * 7 / 8;          // leçon Phase 1 : bas de texte ≤ 7h/8 sur écran rond
+        var zone = bottomLimit - titleBottom;
+        // Petits écrans (rond 208 / semi-octogone 176) : items en SMALL —
+        // 4 items MEDIUM débordent de la corde du bas (fr55 : 153px vs corde 140).
+        var itemFont = (h < 300) ? Graphics.FONT_SMALL : Graphics.FONT_MEDIUM;
+        var fItem = (h < 300) ? fSmall : fMedium;
+        var spacing = 5 * fItem / 4;
+        if (spacing * 3 + fItem > zone) {
+            spacing = (zone - fItem) / 3;
             if (spacing < 1) { spacing = 1; }
         }
-        var y = titleBottom + (zone - (spacing * 3 + fMedium)) / 2;
+        var y = titleBottom + (zone - (spacing * 3 + fItem)) / 2;
         for (var i = 0; i < items.size(); i += 1) {
             var marker = (i == mMenuIndex) ? "> " : "  ";
-            dc.drawText(w / 2, y, Graphics.FONT_MEDIUM, marker + items[i], Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(w / 2, y, itemFont, marker + items[i], Graphics.TEXT_JUSTIFY_CENTER);
             y += spacing;
         }
     }
