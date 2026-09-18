@@ -41,6 +41,23 @@ function test_store_chunks_41_events(logger as Logger) as Boolean {
 }
 
 (:test)
+function test_store_orphan_chunks(logger as Logger) as Boolean {
+    MatchStore.clearMatch();
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
+    enginePoints(e, 21, 19);               // 41 events → 2 lots (30 + 11)
+    MatchStore.saveMatch(e, 2);
+    var e2 = new ScoreEngine(MatchPresets.get(0), "m2");   // nouveau match plus court, MÊME storage
+    enginePoints(e2, 5, 3);                // 8 events → 1 lot seulement
+    MatchStore.saveMatch(e2, 0);           // le lot 1 (11 events du match 1) doit être purgé
+    var loaded = MatchStore.loadMatch();
+    Test.assertEqualMessage("m2", loaded["mid"], "meta du match 2");
+    Test.assertEqualMessage(8, loaded["events"].size(), "8 events — pas d'orphelin relu");
+    Test.assertEqualMessage(8, loaded["events"][7][2], "dernier event : seq 8");
+    MatchStore.clearMatch();
+    return true;
+}
+
+(:test)
 function test_store_prefs(logger as Logger) as Boolean {
     MatchStore.savePresetIndex(1);
     Test.assertEqualMessage(1, MatchStore.loadPresetIndex(), "prefs : format 15 pts memorise");

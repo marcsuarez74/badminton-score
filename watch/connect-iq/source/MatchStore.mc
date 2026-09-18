@@ -19,7 +19,8 @@ module MatchStore {
 
     function loadPresetIndex() as Number {
         var v = Storage.getValue(PREFS_KEY);
-        return (v == null) ? 2 : v;        // défaut : 21 POINTS
+        if (v == null || v < 0 || v > 2) { return 2; }   // défaut : 21 POINTS (clamp anti-corruption)
+        return v;
     }
 
     // ---- match ----
@@ -70,6 +71,8 @@ module MatchStore {
         while (true) {
             var flat = Storage.getValue(EVT_PREFIX + chunk);
             if (flat == null) { break; }
+            // queue non multiple de 6 = donnée corrompue → ignorée (mieux vaut
+            // tronquer que propager ; non productible via l'API publique)
             for (var i = 0; i + 5 < flat.size(); i += 6) {
                 events.add([flat[i], flat[i + 1], flat[i + 2], flat[i + 3], flat[i + 4], flat[i + 5]]);
             }
