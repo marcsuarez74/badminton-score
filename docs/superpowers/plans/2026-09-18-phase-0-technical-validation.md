@@ -721,11 +721,11 @@ monkeyc -d epix2pro51mm -f monkey.jungle -o bin/buttontest-epix2pro51mm.prg -y ~
 
 Copier à nouveau vers `GARMIN/APPS/`, éjecter : l'app sur la montre doit être remplacée sans doublon (même `id` manifest).
 
-- [ ] **Step 5: Désinstallation**
+- [x] **Step 5: Désinstallation**
 
 Garmin Express → appareil epix Pro → Applications → ButtonTest → Supprimer. Vérifier la disparition de la liste d'apps sur la montre.
 
-- [ ] **Step 6: Restaurer la version 0.1.0 et re-sideloader** (l'app reste sur la montre pour la suite des phases) :
+- [x] **Step 6: Restaurer la version 0.1.0 et re-sideloader** (l'app reste sur la montre pour la suite des phases) :
 
 ```bash
 cd prototypes/button-test
