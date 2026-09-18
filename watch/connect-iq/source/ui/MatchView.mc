@@ -19,6 +19,7 @@ class MatchView extends WatchUi.View {
     var mSetupIndex = 2;      // 21 POINTS par défaut
     var mMenuIndex = 0;
     var mEngine = null;
+    var mMatchId = "";        // id du match courant (protocole §7.1)
 
     function initialize() {
         View.initialize();
@@ -126,9 +127,16 @@ class MatchView extends WatchUi.View {
     // ---- transitions ----
 
     function startMatch() as Void {
-        mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex));
+        mMatchId = genMatchId();
+        mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
         mScreen = MatchScreen.SCORE;
         WatchUi.requestUpdate();
+    }
+
+    // Id de match : ms depuis le boot — suffit en local ; le backend
+    // l'espacera du deviceId en Phase 4a (§8.2 : id = matchId:sequence).
+    function genMatchId() as String {
+        return System.getTimer().toString();
     }
 
     // Après chaque mutation moteur : aligner l'écran sur la phase dérivée.

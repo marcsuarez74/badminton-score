@@ -1,4 +1,5 @@
 import Toybox.Lang;
+import Toybox.System;
 
 // Moteur de score PUR (aucun import Graphics/WatchUi, spec §6.2).
 // Event-sourcing : l'état est le replay du journal ; les mutations poussent
@@ -17,10 +18,14 @@ class ScoreEngine {
     var mSetNumber;         // 1-based
     var mLastSetScoreMe;    // score final du dernier set terminé (SET_RESULT)
     var mLastSetScoreOpp;
+    var mMatchId;       // id du match — préfixe des ids d'événements (§7.1)
+    var mLastSequence;  // compteur monotone : jamais réutilisé, même après undo (D-2)
 
-    function initialize(config) {
+    function initialize(config, matchId) {
         mConfig = config;
+        mMatchId = matchId;
         mEvents = [];
+        mLastSequence = 0;
         replay();
     }
 
@@ -53,10 +58,13 @@ class ScoreEngine {
         }
     }
 
-    // Nouveau match (menu Réinitialiser ou DOWN sur MATCH_FINISHED).
-    function newMatch(config) as Void {
+    // Nouveau match (menu Réinitialiser/Changer de format ou DOWN sur MATCH_FINISHED).
+    // Nouveau matchId : nouvelle espace de séquences.
+    function newMatch(config, matchId) as Void {
         mConfig = config;
+        mMatchId = matchId;
         mEvents = [];
+        mLastSequence = 0;
         replay();
     }
 
@@ -73,8 +81,12 @@ class ScoreEngine {
 
     // ---- journal + replay ----
 
+    // Journal positionnel compact (§7.2) : [type, arg, seq, ts, prevMe, prevOpp].
+    // prev = état dérivé AVANT l'event (append précède replay).
     function appendEvent(e) as Void {
-        mEvents.add(e);
+        var arg = e.size() > 1 ? e[1] : 0;
+        mLastSequence += 1;
+        mEvents.add([e[0], arg, mLastSequence, System.getTimer(), mScoreMe, mScoreOpp]);
         replay();
     }
 
@@ -150,4 +162,8 @@ class ScoreEngine {
     function getLastSetScoreOpp() as Number { return mLastSetScoreOpp; }
     function getConfig() as MatchConfig { return mConfig; }
     function getEvents() as Array { return mEvents; }
+
+    // ---- protocole (§7.1/§8.2) ----
+    function getEvent(i as Number) as Array { return mEvents[i]; }
+    function getEventId(i as Number) as String { return mMatchId + ":" + mEvents[i][2]; }
 }

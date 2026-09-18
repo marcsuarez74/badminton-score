@@ -73,7 +73,7 @@ function enginePoints(e as ScoreEngine, nMe as Number, opp as Number) as Void {
 
 (:test)
 function test_engine_initial_state(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     Test.assertEqualMessage(0, e.getScoreMe(), "score me 0-0");
     Test.assertEqualMessage(0, e.getScoreOpp(), "score opp 0-0");
     Test.assertEqualMessage(1, e.getSetNumber(), "set 1");
@@ -85,7 +85,7 @@ function test_engine_initial_state(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_points_and_replay(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     e.pointMe();
     Test.assertEqualMessage(1, e.getScoreMe(), "1-0 apres POINT_ME");
     e.pointOpponent();
@@ -99,7 +99,7 @@ function test_engine_points_and_replay(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_deuce_21(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 20, 20);
     Test.assertEqualMessage(0, e.getPhase(), "20-20 pas fini");
     e.pointMe();
@@ -110,7 +110,7 @@ function test_engine_deuce_21(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_cap_21(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 29, 29);
     e.pointMe();
     Test.assertEqualMessage(30, e.getScoreMe(), "30-29");
@@ -121,7 +121,7 @@ function test_engine_cap_21(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_set_finished_normal(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 19);
     Test.assertEqualMessage(1, e.getPhase(), "21-19 -> SET_RESULT");
     Test.assertEqualMessage(1, e.getSetsMe(), "sets 1-0");
@@ -133,7 +133,7 @@ function test_engine_set_finished_normal(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_set_finished_opponent(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 19, 21);
     Test.assertEqualMessage(1, e.getPhase(), "19-21 -> SET_RESULT");
     Test.assertEqualMessage(1, e.getSetsOpp(), "sets 0-1");
@@ -142,7 +142,7 @@ function test_engine_set_finished_opponent(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_deuce_15(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(1));
+    var e = new ScoreEngine(MatchPresets.get(1), "m1");
     enginePoints(e, 14, 14);
     e.pointMe();
     Test.assertEqualMessage(15, e.getScoreMe(), "15-14");
@@ -152,7 +152,7 @@ function test_engine_deuce_15(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_cap_15(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(1));
+    var e = new ScoreEngine(MatchPresets.get(1), "m1");
     enginePoints(e, 20, 20);
     e.pointMe();
     Test.assertEqualMessage(21, e.getScoreMe(), "21-20");
@@ -162,7 +162,7 @@ function test_engine_cap_15(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_deuce_11(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(0));
+    var e = new ScoreEngine(MatchPresets.get(0), "m1");
     enginePoints(e, 10, 10);
     e.pointMe();
     Test.assertEqualMessage(11, e.getScoreMe(), "11-10");
@@ -172,7 +172,7 @@ function test_engine_deuce_11(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_no_cap_11(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(0));
+    var e = new ScoreEngine(MatchPresets.get(0), "m1");
     enginePoints(e, 15, 14);
     Test.assertEqualMessage(0, e.getPhase(), "15-14 non fini (sans plafond)");
     e.pointMe();
@@ -183,7 +183,7 @@ function test_engine_no_cap_11(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_match_finished_2_sets(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 0);
     e.changeSet();
     enginePoints(e, 21, 0);
@@ -199,7 +199,7 @@ function test_engine_match_finished_2_sets(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_manual_set_change_finishes_match(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 0);
     e.changeSet();                    // set 2
     enginePoints(e, 15, 2);
@@ -217,7 +217,7 @@ function test_engine_manual_set_change_finishes_match(logger as Logger) as Boole
 
 (:test)
 function test_engine_set_result_transition(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 19);
     Test.assertEqualMessage(1, e.getPhase(), "SET_RESULT apres 21-19");
     e.changeSet();
@@ -231,7 +231,7 @@ function test_engine_set_result_transition(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_manual_set_change_leader_credited(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 5, 3);
     e.changeSet();   // changement manuel assumé : leader strict crédité
     Test.assertEqualMessage(0, e.getPhase(), "PLAYING apres changement manuel");
@@ -242,7 +242,7 @@ function test_engine_manual_set_change_leader_credited(logger as Logger) as Bool
 
 (:test)
 function test_engine_manual_set_change_tie_not_credited(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 3, 3);
     e.changeSet();   // égalité : personne n'est crédité
     Test.assertEqualMessage(0, e.getSetsMe(), "egalite : sets me 0");
@@ -255,7 +255,7 @@ function test_engine_manual_set_change_tie_not_credited(logger as Logger) as Boo
 
 (:test)
 function test_engine_undo_simple(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     e.pointMe();
     e.undo();
     Test.assertEqualMessage(0, e.getScoreMe(), "undo simple : retour 0-0");
@@ -267,7 +267,7 @@ function test_engine_undo_simple(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_undo_multi(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 2, 1);
     Test.assertEqualMessage(2, e.getScoreMe(), "2-1 avant undo");
     e.undo();
@@ -281,7 +281,7 @@ function test_engine_undo_multi(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_undo_empty(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     e.undo();   // journal vide : sans effet
     Test.assertEqualMessage(0, e.getScoreMe(), "undo vide : 0-0");
     Test.assertEqualMessage(0, e.getEvents().size(), "undo vide : journal intact");
@@ -291,7 +291,7 @@ function test_engine_undo_empty(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_undo_match_finished_refused(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 0);
     e.changeSet();
     enginePoints(e, 21, 0);
@@ -305,7 +305,7 @@ function test_engine_undo_match_finished_refused(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_undo_set_finished(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 19);          // SET_FINISHED auto (§4.2)
     Test.assertEqualMessage(1, e.getPhase(), "SET_RESULT apres 21-19");
     Test.assertEqualMessage(1, e.getSetsMe(), "sets 1-0");
@@ -320,7 +320,7 @@ function test_engine_undo_set_finished(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_undo_set_changed(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 19);
     e.changeSet();                     // SET_CHANGED apres SET_FINISHED
     Test.assertEqualMessage(2, e.getSetNumber(), "set 2");
@@ -333,9 +333,67 @@ function test_engine_undo_set_changed(logger as Logger) as Boolean {
     return true;
 }
 
+// ---- ScoreEngine : protocole d'événements (spec §7.1/§8.2, décision D-2) ----
+
+(:test)
+function test_engine_events_protocol(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
+    e.pointMe();
+    e.pointOpponent();
+    e.pointMe();
+    Test.assertEqualMessage(3, e.getEvents().size(), "3 events");
+    // id = matchId:sequence, unique (§8.2)
+    Test.assertEqualMessage("m1:1", e.getEventId(0), "id 1 = m1:1");
+    Test.assertEqualMessage("m1:2", e.getEventId(1), "id 2 = m1:2");
+    Test.assertEqualMessage("m1:3", e.getEventId(2), "id 3 = m1:3");
+    // sequence sans trou depuis 1 (§8.2)
+    Test.assertEqualMessage(1, e.getEvent(0)[2], "seq 1");
+    Test.assertEqualMessage(2, e.getEvent(1)[2], "seq 2");
+    Test.assertEqualMessage(3, e.getEvent(2)[2], "seq 3");
+    // timestamp present (System.getTimer() > 0 en simu)
+    Test.assertEqualMessage(true, e.getEvent(0)[3] > 0, "ts > 0");
+    // previousScore cohérent : état dérivé avant chaque mutation
+    Test.assertEqualMessage(0, e.getEvent(0)[4], "e1 prev me 0");
+    Test.assertEqualMessage(0, e.getEvent(0)[5], "e1 prev opp 0");
+    Test.assertEqualMessage(1, e.getEvent(1)[4], "e2 prev me 1");
+    Test.assertEqualMessage(0, e.getEvent(1)[5], "e2 prev opp 0");
+    Test.assertEqualMessage(1, e.getEvent(2)[4], "e3 prev me 1");
+    Test.assertEqualMessage(1, e.getEvent(2)[5], "e3 prev opp 1");
+    // newScore du dernier event = état courant (2-1)
+    Test.assertEqualMessage(2, e.getScoreMe(), "new dernier event : me 2");
+    Test.assertEqualMessage(1, e.getScoreOpp(), "new dernier event : opp 1");
+    return true;
+}
+
+(:test)
+function test_engine_events_set_finished_metadata(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
+    enginePoints(e, 21, 19);
+    var n = e.getEvents().size();      // 40 points + SET_FINISHED
+    Test.assertEqualMessage(41, n, "41 events");
+    var fin = e.getEvent(n - 1);
+    Test.assertEqualMessage(ScoreEvent.TYPE_SET_FINISHED, fin[0], "dernier = SET_FINISHED");
+    Test.assertEqualMessage(41, fin[2], "seq 41 (les points comptent aussi, §8.2)");
+    Test.assertEqualMessage(21, fin[4], "prev me 21");
+    Test.assertEqualMessage(19, fin[5], "prev opp 19");
+    return true;
+}
+
+(:test)
+function test_engine_undo_sequence_monotonic(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
+    e.pointMe();
+    e.undo();
+    e.pointMe();
+    Test.assertEqualMessage(1, e.getEvents().size(), "1 event apres undo+nouveau");
+    Test.assertEqualMessage(2, e.getEvent(0)[2], "sequence jamais reutilisee : 2, pas 1 (D-2)");
+    Test.assertEqualMessage("m1:2", e.getEventId(0), "id m1:2");
+    return true;
+}
+
 (:test)
 function test_engine_match_locked(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 0);
     e.changeSet();
     enginePoints(e, 21, 0);
@@ -350,10 +408,10 @@ function test_engine_match_locked(logger as Logger) as Boolean {
 
 (:test)
 function test_engine_new_match_reset(logger as Logger) as Boolean {
-    var e = new ScoreEngine(MatchPresets.get(2));
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 0);
     e.changeSet();
-    e.newMatch(MatchPresets.get(0));   // nouveau match en 11 pts
+    e.newMatch(MatchPresets.get(0), "m2");   // nouveau match en 11 pts, nouvel id
     Test.assertEqualMessage(0, e.getScoreMe(), "reset 0-0");
     Test.assertEqualMessage(1, e.getSetNumber(), "reset set 1");
     Test.assertEqualMessage(0, e.getPhase(), "reset PLAYING");
