@@ -21,6 +21,8 @@
 - Textes UI en majuscules **sans accents** (fiabilité de rendu MIP 2 couleurs).
 - Un set fermé manuellement (SET_CHANGED) crédite le **leader strict** ; en cas d'égalité, personne (détail non spécifié §4.4, à confirmer en Phase 2 si besoin).
 - App id distinct du prototype : `59EEABC33F1813AE142E338E63007E53` (l'app s'installera **à côté** de ButtonTest, pas à la place).
+- `App.mc` stub dès la Task 1 : monkeyc **exige** la classe d'entry point du manifest dès le premier build (empiriquement vérifié : sinon `Cannot find entry point class '$.BadmintonApp'` sur tous les builds) — remplacé par la vraie app en Task 5.
+- **Sémantique Monkey C `import` vs `using`** (découverte Task 1) : `using Toybox.Graphics` ne résout PAS `Dc` dans une annotation `dc as Dc` — il faut `import Toybox.Graphics`. Symptôme : `Cannot resolve type 'Dc'`. À appliquer dans tout fichier annotant `Dc` (Task 5).
 
 **Git :** branche `phase-1` depuis `main` (dérogation worktree identique à la Phase 0 : repo mono-dev, aucun travail parallèle). Créer la branche en début d'exécution.
 
@@ -1100,7 +1102,7 @@ done
 ls -la bin/
 ```
 
-Attendu : 5 lignes `OK`, 5 `.prg` (~15-25 Ko), **aucun warning** (les fixes leçon Phase 0 sont intégrés). Le warning de l'icône 36x36→60x60 est toléré (icon à redessiner plus tard).
+Attendu : 5 lignes `OK`, 5 `.prg` (~15-25 Ko), **aucun warning** hors l'échelle de l'icône launcher (le PNG 36x36 est rescalé selon le device — ex. 35x35 demandé sur fr55 ; icône à redessiner plus tard).
 
 - [ ] **Step 5: Smoke test simulateur — l'app démarre sur le Setup**
 
