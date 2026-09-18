@@ -10,7 +10,7 @@ module MatchScreen {
     const CONFIRM_SET = 2;    // confirmation inline « terminer set ? » (DOWN=OUI BACK=NON)
     const SET_RESULT = 3;     // set terminé auto, en attente « set suivant » (DOWN)
     const MATCH_FINISHED = 4; // match terminé (DOWN = nouveau match)
-    const MENU = 5;           // menu inline UP-long (Reprendre / Quitter)
+    const MENU = 5;           // menu inline UP-long (Reprendre / Format / Reset / Quitter)
 }
 
 class MatchView extends WatchUi.View {
@@ -19,6 +19,7 @@ class MatchView extends WatchUi.View {
     var mSetupIndex = 2;      // 21 POINTS par défaut
     var mMenuIndex = 0;
     var mEngine = null;
+    var mMatchId = "";        // id du match courant (protocole §7.1)
 
     function initialize() {
         View.initialize();
@@ -44,7 +45,11 @@ class MatchView extends WatchUi.View {
 
     function onBack() as Boolean {
         if (mScreen == MatchScreen.SETUP) {
-            return false;   // aucun match en cours : BACK ferme l'app (comportement CIQ naturel)
+            if (mEngine != null) {          // match existant (menu FORMAT / fin de match) : BACK = annuler
+                syncScreen();               // retour SCORE / SET_RESULT / MATCH_FINISHED selon la phase
+                return true;
+            }
+            return false;                   // pré-match : BACK ferme l'app (comportement CIQ naturel, Phase 1)
         }
         if (mScreen == MatchScreen.SCORE) {
             mEngine.pointOpponent();
@@ -71,11 +76,16 @@ class MatchView extends WatchUi.View {
             return true;
         }
         if (mScreen == MatchScreen.MENU) {
-            mMenuIndex = (mMenuIndex + 1) % 2;   // liste de 2 : UP et DOWN cyclent
+            mMenuIndex = (mMenuIndex + 3) % 4;   // UP : recule dans la liste de 4
             WatchUi.requestUpdate();
             return true;
         }
-        return true;   // UNDO = Phase 2, UP sans effet en SCORE
+        if (mScreen == MatchScreen.SCORE || mScreen == MatchScreen.SET_RESULT) {
+            mEngine.undo();              // UP = UNDO (§3.2/D7) — depuis SCORE et SET_RESULT
+            syncScreen();                // set repris → SCORE ; undo SET_CHANGED → SET_RESULT
+            return true;
+        }
+        return true;
     }
 
     function onDown() as Boolean {
@@ -106,7 +116,7 @@ class MatchView extends WatchUi.View {
             return true;
         }
         if (mScreen == MatchScreen.MENU) {
-            mMenuIndex = (mMenuIndex + 1) % 2;
+            mMenuIndex = (mMenuIndex + 1) % 4;
             WatchUi.requestUpdate();
             return true;
         }
@@ -126,9 +136,16 @@ class MatchView extends WatchUi.View {
     // ---- transitions ----
 
     function startMatch() as Void {
-        mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex));
+        mMatchId = genMatchId();
+        mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
         mScreen = MatchScreen.SCORE;
         WatchUi.requestUpdate();
+    }
+
+    // Id de match : ms depuis le boot — suffit en local ; le backend
+    // l'espacera du deviceId en Phase 4a (§8.2 : id = matchId:sequence).
+    function genMatchId() as String {
+        return System.getTimer().toString();
     }
 
     // Après chaque mutation moteur : aligner l'écran sur la phase dérivée.
@@ -144,12 +161,21 @@ class MatchView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
+    // Menu inline §5 : Reprendre / Changer de format / Réinitialiser / Quitter.
+    // (Labels compacts « FORMAT »/« RESET » : écrans ronds, leçon Phase 1.)
     function menuSelect() as Boolean {
-        if (mMenuIndex == 1) {
-            System.exit();
-        } else {
-            mScreen = MatchScreen.SCORE;   // Reprendre
+        if (mMenuIndex == 0) {
+            mScreen = MatchScreen.SCORE;      // Reprendre
             WatchUi.requestUpdate();
+        } else if (mMenuIndex == 1) {
+            mScreen = MatchScreen.SETUP;      // Changer de format (START = nouveau match)
+            WatchUi.requestUpdate();
+        } else if (mMenuIndex == 2) {
+            mEngine.newMatch(mEngine.getConfig(), genMatchId());   // Réinitialiser
+            mScreen = MatchScreen.SCORE;
+            WatchUi.requestUpdate();
+        } else {
+            System.exit();                    // Quitter — dernier bloc, rien après
         }
         return true;
     }
@@ -277,14 +303,27 @@ class MatchView extends WatchUi.View {
     }
 
     function drawMenu(dc as Dc, w as Number, h as Number) as Void {
+        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fMedium = dc.getFontHeight(Graphics.FONT_MEDIUM);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "MENU", Graphics.TEXT_JUSTIFY_CENTER);
-        var items = ["REPRENDRE", "QUITTER"];
-        var y = h / 2 - fMedium;
+        var items = ["REPRENDRE", "FORMAT", "RESET", "QUITTER"];
+        var titleBottom = h / 8 + fSmall;
+        var bottomLimit = h * 7 / 8;          // leçon Phase 1 : bas de texte ≤ 7h/8 sur écran rond
+        var zone = bottomLimit - titleBottom;
+        // Petits écrans (rond 208 / semi-octogone 176) : items en SMALL —
+        // 4 items MEDIUM débordent de la corde du bas (fr55 : 153px vs corde 140).
+        var itemFont = (h < 300) ? Graphics.FONT_SMALL : Graphics.FONT_MEDIUM;
+        var fItem = (h < 300) ? fSmall : fMedium;
+        var spacing = 5 * fItem / 4;
+        if (spacing * 3 + fItem > zone) {
+            spacing = (zone - fItem) / 3;
+            if (spacing < 1) { spacing = 1; }
+        }
+        var y = titleBottom + (zone - (spacing * 3 + fItem)) / 2;
         for (var i = 0; i < items.size(); i += 1) {
             var marker = (i == mMenuIndex) ? "> " : "  ";
-            dc.drawText(w / 2, y, Graphics.FONT_MEDIUM, marker + items[i], Graphics.TEXT_JUSTIFY_CENTER);
-            y += 3 * fMedium / 2;
+            dc.drawText(w / 2, y, itemFont, marker + items[i], Graphics.TEXT_JUSTIFY_CENTER);
+            y += spacing;
         }
     }
 }
