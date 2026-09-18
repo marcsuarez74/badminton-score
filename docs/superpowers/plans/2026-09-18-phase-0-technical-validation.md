@@ -686,7 +686,7 @@ git commit -m "test(phase0): sondes Application.Storage Run No Evil (roundtrip, 
 
 - [ ] **Step 2: Activer les logs (U6) et vérifier**
 
-1. Rebrancher en USB. Créer le dossier/fichier de logs : `GARMIN/APPS/LOGS/BUTTONTET-EPIX2PRO51MM.TXT` (nom attendu = nom du `.prg` sans extension, en majuscules ; si la montre écrit dans un autre nom, c'est la réponse à U6 — la noter).
+1. Rebrancher en USB. Créer le dossier/fichier de logs : `GARMIN/APPS/LOGS/BUTTONTEST-EPIX2PRO51MM.TXT` (nom attendu = nom du `.prg` sans extension, en majuscules ; si la montre écrit dans un autre nom, c'est la réponse à U6 — la noter).
 
 ```bash
 mkdir -p /Volumes/GARMIN/APPS/LOGS
