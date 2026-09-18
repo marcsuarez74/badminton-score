@@ -23,6 +23,7 @@
 - App id distinct du prototype : `59EEABC33F1813AE142E338E63007E53` (l'app s'installera **à côté** de ButtonTest, pas à la place).
 - `App.mc` stub dès la Task 1 : monkeyc **exige** la classe d'entry point du manifest dès le premier build (empiriquement vérifié : sinon `Cannot find entry point class '$.BadmintonApp'` sur tous les builds) — remplacé par la vraie app en Task 5.
 - **Sémantique Monkey C `import` vs `using`** (découverte Task 1) : `using Toybox.Graphics` ne résout PAS `Dc` dans une annotation `dc as Dc` — il faut `import Toybox.Graphics`. Symptôme : `Cannot resolve type 'Dc'`. À appliquer dans tout fichier annotant `Dc` (Task 5).
+- **Corrections Task 5 (erreurs du plan, prouvées au build)** : `Graphics.TEXT_CENTER` n'existe pas dans le SDK 9.2.0 → `Graphics.TEXT_JUSTIFY_CENTER` ; `import Toybox.Lang` requis dans MatchView ET MatchDelegate pour les annotations Boolean/Number ; `menuSelect()` restructuré if/else (System.exit non retournant = warning unreachable) ; branche CONFIRM_SET ajoutée dans `onDown()` (DOWN=OUI était inatteignable avec le code initial du plan).
 
 **Git :** branche `phase-1` depuis `main` (dérogation worktree identique à la Phase 0 : repo mono-dev, aucun travail parallèle). Créer la branche en début d'exécution.
 
@@ -889,6 +890,12 @@ class MatchView extends WatchUi.View {
         }
         if (mScreen == MatchScreen.SET_RESULT) {
             mEngine.changeSet();                 // « set suivant » (SET_FINISHED déjà enregistré)
+            syncScreen();
+            return true;
+        }
+        if (mScreen == MatchScreen.CONFIRM_SET) {
+            mScreen = MatchScreen.SCORE;         // DOWN = OUI ; syncScreen suivra (SCORE ou MATCH_FINISHED, fix C1)
+            mEngine.changeSet();
             syncScreen();
             return true;
         }
