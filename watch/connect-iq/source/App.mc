@@ -1,15 +1,25 @@
 using Toybox.Application;
+import Toybox.Lang;
 using Toybox.WatchUi;
 
-// Persistance onStart/onStop : Phase 3 (spec §16). Phase 1 = session volatile.
+// Persistance : sauvegarde à chaque mutation (MatchView.syncScreen) + filet
+// onStop (§7.2). Reprise au lancement : MatchView.initialize (§5 Démarrage).
 class BadmintonApp extends Application.AppBase {
+
+    var mView = null;
 
     function initialize() {
         AppBase.initialize();
     }
 
     function getInitialView() {
-        var view = new MatchView();
-        return [view, new MatchDelegate(view)];
+        mView = new MatchView();
+        return [mView, new MatchDelegate(mView)];
+    }
+
+    function onStop(state as Dictionary or Null) as Void {
+        if (mView != null) {
+            mView.persist();
+        }
     }
 }
