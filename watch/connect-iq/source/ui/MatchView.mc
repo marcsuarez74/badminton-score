@@ -32,7 +32,7 @@ class MatchView extends WatchUi.View {
             mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
             mEngine.restore(saved["base"], saved["events"]);
             mEngine.setLastSequence(saved["ls"]);   // filet D-2 APRÈS restore (undo préalable)
-            mScreen = MatchScreen.SCORE;              // syncScreen dérive SCORE/SET_RESULT/MATCH_FINISHED
+            syncScreen();   // dérive SCORE/SET_RESULT/MATCH_FINISHED + première sauvegarde (§7.2)
         }
         WatchUi.requestUpdate();
     }
