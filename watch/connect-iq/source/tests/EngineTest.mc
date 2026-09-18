@@ -212,3 +212,70 @@ function test_engine_manual_set_change_finishes_match(logger as Logger) as Boole
     Test.assertEqualMessage(42, e.getEvents().size(), "verrou : plus de mutation");
     return true;
 }
+
+// ---- ScoreEngine : transitions de set (spec §4.4, §15.1) ----
+
+(:test)
+function test_engine_set_result_transition(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 19);
+    Test.assertEqualMessage(1, e.getPhase(), "SET_RESULT apres 21-19");
+    e.changeSet();
+    Test.assertEqualMessage(0, e.getPhase(), "PLAYING apres set suivant");
+    Test.assertEqualMessage(2, e.getSetNumber(), "set 2");
+    Test.assertEqualMessage(0, e.getScoreMe(), "set 2 : 0-0");
+    Test.assertEqualMessage(0, e.getScoreOpp(), "set 2 : 0-0");
+    Test.assertEqualMessage(1, e.getSetsMe(), "sets 1-0 conserves");
+    return true;
+}
+
+(:test)
+function test_engine_manual_set_change_leader_credited(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 5, 3);
+    e.changeSet();   // changement manuel assumé : leader strict crédité
+    Test.assertEqualMessage(0, e.getPhase(), "PLAYING apres changement manuel");
+    Test.assertEqualMessage(2, e.getSetNumber(), "set 2");
+    Test.assertEqualMessage(1, e.getSetsMe(), "leader (5-3) credite : sets 1-0");
+    return true;
+}
+
+(:test)
+function test_engine_manual_set_change_tie_not_credited(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 3, 3);
+    e.changeSet();   // égalité : personne n'est crédité
+    Test.assertEqualMessage(0, e.getSetsMe(), "egalite : sets me 0");
+    Test.assertEqualMessage(0, e.getSetsOpp(), "egalite : sets opp 0");
+    Test.assertEqualMessage(2, e.getSetNumber(), "set 2 quand meme");
+    return true;
+}
+
+(:test)
+function test_engine_match_locked(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 0);
+    e.changeSet();
+    enginePoints(e, 21, 0);
+    Test.assertEqualMessage(2, e.getPhase(), "MATCH_FINISHED");
+    var count = e.getEvents().size();
+    e.changeSet();   // sans effet sur un match fini
+    Test.assertEqualMessage(count, e.getEvents().size(), "changeSet ignore apres MATCH_FINISHED");
+    e.pointMe();     // sans effet non plus
+    Test.assertEqualMessage(count, e.getEvents().size(), "point ignore apres MATCH_FINISHED");
+    return true;
+}
+
+(:test)
+function test_engine_new_match_reset(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 0);
+    e.changeSet();
+    e.newMatch(MatchPresets.get(0));   // nouveau match en 11 pts
+    Test.assertEqualMessage(0, e.getScoreMe(), "reset 0-0");
+    Test.assertEqualMessage(1, e.getSetNumber(), "reset set 1");
+    Test.assertEqualMessage(0, e.getPhase(), "reset PLAYING");
+    Test.assertEqualMessage(0, e.getEvents().size(), "journal vide");
+    Test.assertEqualMessage(11, e.getConfig().mTargetScore, "nouvelle config 11 pts");
+    return true;
+}
