@@ -4,3 +4,5 @@ bin/
 *.der
 *.pem
 .env
+*.pdf
+prototypes/button-test/sideload/

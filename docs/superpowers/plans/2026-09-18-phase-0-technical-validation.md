@@ -45,7 +45,7 @@ Responsabilités : `ButtonTestApp` = cycle de vie ; `ButtonTestView` = état d'a
 
 **Files:** aucun fichier repo (environnement système)
 
-- [ ] **Step 1: Vérifier la version Java courante**
+- [x] **Step 1: Vérifier la version Java courante**
 
 ```bash
 java -version
@@ -53,7 +53,7 @@ java -version
 
 Attendu actuel : `1.8.0_292` (Java 8 — insuffisant, la doc Monkey C exige Java 11+). Si la sortie affiche déjà ≥ 17, passer à la Task 2.
 
-- [ ] **Step 2: Installer Temurin 17 via Homebrew**
+- [x] **Step 2: Installer Temurin 17 via Homebrew**
 
 ```bash
 which brew && brew install --cask temurin@17
@@ -69,7 +69,7 @@ sudo installer -pkg /tmp/temurin17.pkg -target /
 
 (sur Intel : remplacer `arm64` par `x64` dans l'URL)
 
-- [ ] **Step 3: Vérifier que Java 17 est actif**
+- [x] **Step 3: Vérifier que Java 17 est actif**
 
 ```bash
 java -version
@@ -90,19 +90,19 @@ puis `source ~/.zshrc` et re-vérifier `java -version`.
 
 **Files:** aucun fichier repo (environnement système)
 
-- [ ] **Step 1: Télécharger et installer SDK Manager**
+- [x] **Step 1: Télécharger et installer SDK Manager**
 
 L'utilisateur télécharge `connectiq-sdk-manager.dmg` depuis https://developer.garmin.com/connect-iq/sdk/ (bouton *Download SDK Manager for Mac*), ouvre le dmg, glisse **Connect IQ SDK Manager** dans Applications, puis le lance.
 
-- [ ] **Step 2: Login Garmin + installation du SDK**
+- [x] **Step 2: Login Garmin + installation du SDK**
 
 Dans SDK Manager : login compte Garmin → onglet **SDKs** → installer le SDK courant (**9.2.0** ou plus récent).
 
-- [ ] **Step 3: Télécharger les profils devices**
+- [x] **Step 3: Télécharger les profils devices**
 
 Onglet **Devices** : installer les 5 profils — `fr55`, `instinct2`, `epix2pro42mm`, `epix2pro47mm`, `epix2pro51mm`.
 
-- [ ] **Step 4: Vérifier l'installation**
+- [x] **Step 4: Vérifier l'installation**
 
 ```bash
 cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg"
@@ -116,14 +116,14 @@ Attendu : un chemin absolu vers le SDK (ex. `.../ConnectIQ/Sdks/connectiq-sdk-li
 
 **Files:** `~/.zshrc` (hors repo)
 
-- [ ] **Step 1: Ajouter le PATH SDK au shell**
+- [x] **Step 1: Ajouter le PATH SDK au shell**
 
 ```bash
 printf '\n# Garmin Connect IQ SDK\nexport PATH="$PATH:$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")/bin"\n' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-- [ ] **Step 2: Vérifier les 3 CLIs**
+- [x] **Step 2: Vérifier les 3 CLIs**
 
 ```bash
 which monkeyc monkeydo connectiq
@@ -137,7 +137,7 @@ Attendu : les 3 chemins résolvent dans `<sdk>/bin/`. Si `which` échoue, tester
 
 **Files:** `~/keys/developer_key.pem`, `~/keys/developer_key.der` (hors repo ; `.gitignore` couvre déjà `*.pem`/`*.der`)
 
-- [ ] **Step 1: Générer la paire de clés**
+- [x] **Step 1: Générer la paire de clés**
 
 ```bash
 mkdir -p ~/keys
@@ -145,7 +145,7 @@ openssl genrsa -out ~/keys/developer_key.pem 4096
 openssl pkcs8 -topk8 -inform PEM -outform DER -in ~/keys/developer_key.pem -out ~/keys/developer_key.der -nocrypt
 ```
 
-- [ ] **Step 2: Vérifier le format DER**
+- [x] **Step 2: Vérifier le format DER**
 
 ```bash
 file ~/keys/developer_key.der
@@ -164,13 +164,13 @@ Attendu : `data` (binaire DER). Conserver ces fichiers : toute build est signée
 - Create: `prototypes/button-test/resources/drawables/drawables.xml`
 - Create: `prototypes/button-test/resources/drawables/launcher_icon.png` (générée)
 
-- [ ] **Step 1: Créer l'arborescence**
+- [x] **Step 1: Créer l'arborescence**
 
 ```bash
 mkdir -p prototypes/button-test/source/tests prototypes/button-test/resources/drawables prototypes/button-test/resources/strings prototypes/button-test/bin
 ```
 
-- [ ] **Step 2: Écrire `prototypes/button-test/manifest.xml`**
+- [x] **Step 2: Écrire `prototypes/button-test/manifest.xml`**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -193,7 +193,7 @@ mkdir -p prototypes/button-test/source/tests prototypes/button-test/resources/dr
 </iq:manifest>
 ```
 
-- [ ] **Step 3: Écrire `prototypes/button-test/monkey.jungle`**
+- [x] **Step 3: Écrire `prototypes/button-test/monkey.jungle`**
 
 ```
 project.manifest = manifest.xml
@@ -201,7 +201,7 @@ base.sourcePath = source
 base.resourcePath = resources
 ```
 
-- [ ] **Step 4: Écrire `prototypes/button-test/resources/strings/strings.xml`**
+- [x] **Step 4: Écrire `prototypes/button-test/resources/strings/strings.xml`**
 
 ```xml
 <strings>
@@ -209,7 +209,7 @@ base.resourcePath = resources
 </strings>
 ```
 
-- [ ] **Step 5: Écrire `prototypes/button-test/resources/drawables/drawables.xml`**
+- [x] **Step 5: Écrire `prototypes/button-test/resources/drawables/drawables.xml`**
 
 ```xml
 <drawables>
@@ -217,7 +217,7 @@ base.resourcePath = resources
 </drawables>
 ```
 
-- [ ] **Step 6: Générer l'icône launcher (PNG 36×36, python3 natif)**
+- [x] **Step 6: Générer l'icône launcher (PNG 36×36, python3 natif)**
 
 ```bash
 python3 - <<'EOF'
@@ -239,7 +239,7 @@ file prototypes/button-test/resources/drawables/launcher_icon.png
 
 Attendu : `PNG image data, 36 x 36, 8-bit/color RGB, non-interlaced`. Si `python3` absent : installer les Xcode CLT (`xcode-select --install`) puis relancer.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add prototypes/button-test
@@ -256,7 +256,7 @@ git commit -m "feat(phase0): squelette prototype button-test (manifest 5 devices
 - Create: `prototypes/button-test/source/ButtonTestDelegate.mc`
 - Create: `prototypes/button-test/source/DeviceProbe.mc`
 
-- [ ] **Step 1: Écrire `source/DeviceProbe.mc` (sonde U3 — try/catch sur champs candidats, compile-safe)**
+- [x] **Step 1: Écrire `source/DeviceProbe.mc` (sonde U3 — try/catch sur champs candidats, compile-safe)**
 
 ```monkeyc
 using Toybox.System;
@@ -303,7 +303,7 @@ Note : si `Object.property(name)` n'existe pas dans le SDK courant (à vérifier
     }
 ```
 
-- [ ] **Step 2: Écrire `source/ButtonTestView.mc`**
+- [x] **Step 2: Écrire `source/ButtonTestView.mc`**
 
 ```monkeyc
 using Toybox.Graphics;
@@ -399,7 +399,7 @@ class ButtonTestView extends WatchUi.View {
 }
 ```
 
-- [ ] **Step 3: Écrire `source/ButtonTestDelegate.mc`**
+- [x] **Step 3: Écrire `source/ButtonTestDelegate.mc`**
 
 ```monkeyc
 using Toybox.WatchUi;
@@ -446,7 +446,7 @@ class ButtonTestDelegate extends WatchUi.BehaviorDelegate {
 }
 ```
 
-- [ ] **Step 4: Écrire `source/ButtonTestApp.mc`**
+- [x] **Step 4: Écrire `source/ButtonTestApp.mc`**
 
 ```monkeyc
 using Toybox.Application;
@@ -475,7 +475,7 @@ class ButtonTestApp extends Application.AppBase {
 }
 ```
 
-- [ ] **Step 5: Build pour les 5 devices (le test ultime : profils devices présents + signature + limites mémoire)**
+- [x] **Step 5: Build pour les 5 devices (le test ultime : profils devices présents + signature + limites mémoire)**
 
 ```bash
 cd prototypes/button-test
@@ -488,7 +488,7 @@ ls -la bin/
 
 Attendu : 5 lignes `OK …`, 5 fichiers `.prg` de ~20-60 Ko. **`instinct2` doit réussir** (profil le plus contraint, 96 Ko). En cas d'erreur « unknown device » : profil device non téléchargé (Task 2 Step 3). En cas d'erreur de signature : chemin de la clé (`-y`) ou format DER (Task 4).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add prototypes/button-test/source prototypes/button-test/manifest.xml prototypes/button-test/monkey.jungle
@@ -501,7 +501,7 @@ git commit -m "feat(phase0): app button-test compilable (BehaviorDelegate, vue i
 
 **Files:** aucun (exécution)
 
-- [ ] **Step 1: Lancer sur fr55 (MIP rond 208, 8 couleurs)**
+- [x] **Step 1: Lancer sur fr55 (MIP rond 208, 8 couleurs)**
 
 ```bash
 cd prototypes/button-test
@@ -523,7 +523,7 @@ Le simulateur s'ouvre. Dans la fenêtre simulateur, cliquer chaque bouton et vé
 
 Relancer (`monkeydo …`) et vérifier aussi la console : lignes `[probe] …` présentes au lancement (les copier pour U3).
 
-- [ ] **Step 2: Idem sur instinct2 (semi-octogone 176, 2 couleurs)**
+- [x] **Step 2: Idem sur instinct2 (semi-octogone 176, 2 couleurs)**
 
 ```bash
 monkeydo bin/buttontest-instinct2.prg instinct2
@@ -531,7 +531,7 @@ monkeydo bin/buttontest-instinct2.prg instinct2
 
 Même checklist. Vérifier lisibilité 2 couleurs (texte blanc sur fond noir, aucun gris illisible).
 
-- [ ] **Step 3: Idem sur epix2pro51mm (AMOLED rond 454)**
+- [x] **Step 3: Idem sur epix2pro51mm (AMOLED rond 454)**
 
 ```bash
 monkeydo bin/buttontest-epix2pro51mm.prg epix2pro51mm
@@ -539,7 +539,7 @@ monkeydo bin/buttontest-epix2pro51mm.prg epix2pro51mm
 
 Même checklist.
 
-- [ ] **Step 4: Consigner les résultats simulateur** (boutons OK/KO par profil + sortie `[probe]`) dans un brouillon `docs/superpowers/notes/phase-0-sim-results.md` :
+- [x] **Step 4: Consigner les résultats simulateur** (boutons OK/KO par profil + sortie `[probe]`) dans un brouillon `docs/superpowers/notes/phase-0-sim-results.md` :
 
 ```markdown
 # Phase 0 — Résultats simulateur (button-test)
@@ -560,7 +560,7 @@ Sortie [probe] brute (U3) :
 **Files:**
 - Create: `prototypes/button-test/source/tests/StorageLimitTest.mc`
 
-- [ ] **Step 1: Écrire `source/tests/StorageLimitTest.mc`**
+- [x] **Step 1: Écrire `source/tests/StorageLimitTest.mc`**
 
 ```monkeyc
 using Toybox.Application.Storage;
@@ -645,7 +645,7 @@ class StorageLimitTest extends Test.Logger {
 
 Note d'exécution : si `Test.assertEqual` ne résout pas (variation d'API Run No Evil), utiliser `self.assertEqual(expected, actual, message)` — les deux formes existent selon les versions du SDK ; la compile indiquera immédiatement la bonne.
 
-- [ ] **Step 2: Compiler et exécuter les tests (fr55)**
+- [x] **Step 2: Compiler et exécuter les tests (fr55)**
 
 ```bash
 cd prototypes/button-test
@@ -655,7 +655,7 @@ monkeydo bin/tests-fr55.prg fr55 -t
 
 Attendu dans la console simulateur : les 4 tests en `PASS`, résumé final sans `FAIL`. La sonde totale peut prendre quelques dizaines de secondes (concaténations) — normal.
 
-- [ ] **Step 3: Exécuter aussi sur instinct2 et epix2pro51mm**
+- [x] **Step 3: Exécuter aussi sur instinct2 et epix2pro51mm**
 
 ```bash
 monkeyc -d instinct2 -f monkey.jungle -o bin/tests-instinct2.prg -y ~/keys/developer_key.der -t && monkeydo bin/tests-instinct2.prg instinct2 -t
@@ -664,7 +664,7 @@ monkeyc -d epix2pro51mm -f monkey.jungle -o bin/tests-epix2pro51mm.prg -y ~/keys
 
 Attendu : vert sur les 3 profils ; noter le total Ko réel observé par device (peut différer de 128).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add prototypes/button-test/source/tests/StorageLimitTest.mc
@@ -677,16 +677,16 @@ git commit -m "test(phase0): sondes Application.Storage Run No Evil (roundtrip, 
 
 **Files:** aucun (matériel)
 
-- [ ] **Step 1: Copier le .prg sur la montre (U4)**
+- [x] **Step 1: Copier le .prg sur la montre (U4)**
 
 1. Brancher l'epix Pro 51 mm en USB-C (câble data). Vérifier que le volume **GARMIN** apparaît dans le Finder.
 2. Copier `prototypes/button-test/bin/buttontest-epix2pro51mm.prg` vers **`GARMIN/APPS/`** (copier dans APPS même si la montre expose aussi APPS/DATA : comportement MTP confirmé par les forums, à prouver ici).
 3. Éjecter le volume, débrancher.
 4. Sur la montre : liste des apps/activités → **ButtonTest** doit apparaître. Le lancer : écran `BUTTON TEST / AUCUN / N=0`.
 
-- [ ] **Step 2: Activer les logs (U6) et vérifier**
+- [x] **Step 2: Activer les logs (U6) et vérifier**
 
-1. Rebrancher en USB. Créer le dossier/fichier de logs : `GARMIN/APPS/LOGS/BUTTONTET-EPIX2PRO51MM.TXT` (nom attendu = nom du `.prg` sans extension, en majuscules ; si la montre écrit dans un autre nom, c'est la réponse à U6 — la noter).
+1. Rebrancher en USB. Créer le dossier/fichier de logs : `GARMIN/APPS/LOGS/BUTTONTEST-EPIX2PRO51MM.TXT` (nom attendu = nom du `.prg` sans extension, en majuscules ; si la montre écrit dans un autre nom, c'est la réponse à U6 — la noter).
 
 ```bash
 mkdir -p /Volumes/GARMIN/APPS/LOGS
@@ -697,7 +697,7 @@ touch "/Volumes/GARMIN/APPS/LOGS/BUTTONTET-EPIX2PRO51MM.TXT"
 
 2. Débrancher, lancer ButtonTest sur la montre, rebrancher, lire le fichier : les lignes `=== ButtonTest onStart ===` et `[probe] …` doivent y être.
 
-- [ ] **Step 3: Checklist matérielle boutons (U1, U2 + critère de sortie Phase 0)**
+- [x] **Step 3: Checklist matérielle boutons (U1, U2 + critère de sortie Phase 0)**
 
 Sur la montre, pour chaque action vérifier l'affichage identique au simulateur :
 
@@ -710,7 +710,7 @@ Sur la montre, pour chaque action vérifier l'affichage identique au simulateur 
 - [ ] DOWN maintenu → noter le comportement système observé (hotkey musique ?) (**U2**)
 - [ ] LIGHT → rétroéclairage uniquement, aucun effet score
 
-- [ ] **Step 4: Test de remplacement de version**
+- [x] **Step 4: Test de remplacement de version**
 
 Modifier `version="0.1.0"` → `"0.1.1"` dans `prototypes/button-test/manifest.xml`, rebuilder puis recopier :
 
@@ -721,11 +721,11 @@ monkeyc -d epix2pro51mm -f monkey.jungle -o bin/buttontest-epix2pro51mm.prg -y ~
 
 Copier à nouveau vers `GARMIN/APPS/`, éjecter : l'app sur la montre doit être remplacée sans doublon (même `id` manifest).
 
-- [ ] **Step 5: Désinstallation**
+- [x] **Step 5: Désinstallation**
 
 Garmin Express → appareil epix Pro → Applications → ButtonTest → Supprimer. Vérifier la disparition de la liste d'apps sur la montre.
 
-- [ ] **Step 6: Restaurer la version 0.1.0 et re-sideloader** (l'app reste sur la montre pour la suite des phases) :
+- [x] **Step 6: Restaurer la version 0.1.0 et re-sideloader** (l'app reste sur la montre pour la suite des phases) :
 
 ```bash
 cd prototypes/button-test
@@ -743,7 +743,7 @@ puis recopier vers `GARMIN/APPS/`.
 - Create: `docs/superpowers/notes/2026-09-18-phase-0-findings.md`
 - Modify: `docs/superpowers/specs/2026-09-18-badminton-score-design.md` (§17)
 
-- [ ] **Step 1: Écrire `docs/superpowers/notes/2026-09-18-phase-0-findings.md`**
+- [x] **Step 1: Écrire `docs/superpowers/notes/2026-09-18-phase-0-findings.md`**
 
 ```markdown
 # Phase 0 — Findings (2026-09-18)
@@ -774,7 +774,7 @@ puis recopier vers `GARMIN/APPS/`.
 <ex. : rien à changer au design / ajustements…>
 ```
 
-- [ ] **Step 2: Pointer les résultats depuis la spec §17**
+- [x] **Step 2: Pointer les résultats depuis la spec §17**
 
 Dans `docs/superpowers/specs/2026-09-18-badminton-score-design.md`, juste après le tableau §17, ajouter :
 
