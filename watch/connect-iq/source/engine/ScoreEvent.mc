@@ -1,5 +1,6 @@
 // Codes des événements du journal (tableaux positionnels, préfiguration spec §7.2).
-// [typeCode] ou [typeCode, arg] — la séquence est implicite (index dans le journal).
+// Format 6 slots [type, arg, seq, ts, prevMe, prevOpp] — voir ScoreEngine.appendEvent.
+// Séquence monotone : jamais réutilisée après undo (décision D-2, §8.2).
 module ScoreEvent {
     const TYPE_POINT_ME = 0;
     const TYPE_POINT_OPPONENT = 1;
