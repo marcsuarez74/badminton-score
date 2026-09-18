@@ -23,6 +23,18 @@ class MatchView extends WatchUi.View {
 
     function initialize() {
         View.initialize();
+        mSetupIndex = MatchStore.loadPresetIndex();   // format mémorisé (§5)
+        var saved = MatchStore.loadMatch();
+        if (saved != null) {
+            // Match en cours persisté : reprise directe (§5 Démarrage)
+            mSetupIndex = saved["pi"];
+            mMatchId = saved["mid"];
+            mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
+            mEngine.restore(saved["base"], saved["events"]);
+            mEngine.setLastSequence(saved["ls"]);   // filet D-2 APRÈS restore (undo préalable)
+            mScreen = MatchScreen.SCORE;              // syncScreen dérive SCORE/SET_RESULT/MATCH_FINISHED
+        }
+        WatchUi.requestUpdate();
     }
 
     // ---- délégué -> vue (le delegate n'a aucune logique) ----
@@ -111,6 +123,7 @@ class MatchView extends WatchUi.View {
             return true;
         }
         if (mScreen == MatchScreen.MATCH_FINISHED) {
+            MatchStore.clearMatch();             // résultat consulté → prochain lancement : Setup (§5)
             mScreen = MatchScreen.SETUP;         // DOWN = NOUVEAU (format mémorisé)
             WatchUi.requestUpdate();
             return true;
@@ -137,9 +150,17 @@ class MatchView extends WatchUi.View {
 
     function startMatch() as Void {
         mMatchId = genMatchId();
+        MatchStore.savePresetIndex(mSetupIndex);
         mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
         mScreen = MatchScreen.SCORE;
         WatchUi.requestUpdate();
+    }
+
+    // Filet de sauvegarde (App.onStop, §7.2) — chaque mutation sauvegarde déjà.
+    function persist() as Void {
+        if (mEngine != null) {
+            MatchStore.saveMatch(mEngine, mSetupIndex);
+        }
     }
 
     // Id de match : ms depuis le boot — suffit en local ; le backend
@@ -150,6 +171,9 @@ class MatchView extends WatchUi.View {
 
     // Après chaque mutation moteur : aligner l'écran sur la phase dérivée.
     function syncScreen() as Void {
+        if (mEngine != null) {
+            MatchStore.saveMatch(mEngine, mSetupIndex);   // setValue synchrone, §7.2
+        }
         var p = mEngine.getPhase();
         if (p == ScorePhase.MATCH_FINISHED) {
             mScreen = MatchScreen.MATCH_FINISHED;
@@ -172,8 +196,7 @@ class MatchView extends WatchUi.View {
             WatchUi.requestUpdate();
         } else if (mMenuIndex == 2) {
             mEngine.newMatch(mEngine.getConfig(), genMatchId());   // Réinitialiser
-            mScreen = MatchScreen.SCORE;
-            WatchUi.requestUpdate();
+            syncScreen();                                          // SCORE + sauvegarde
         } else {
             System.exit();                    // Quitter — dernier bloc, rien après
         }
