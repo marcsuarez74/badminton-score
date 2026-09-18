@@ -196,3 +196,19 @@ function test_engine_match_finished_2_sets(logger as Logger) as Boolean {
     Test.assertEqualMessage(21, e.getScoreMe(), "scores du dernier set figes 21-0");
     return true;
 }
+
+(:test)
+function test_engine_manual_set_change_finishes_match(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 0);
+    e.changeSet();                    // set 2
+    enginePoints(e, 15, 2);
+    e.changeSet();                    // changement manuel : leader crédité -> 2-0
+    Test.assertEqualMessage(2, e.getSetsMe(), "sets 2-0 via SET_CHANGED manuel");
+    Test.assertEqualMessage(2, e.getPhase(), "MATCH_FINISHED (spec §4.3)");
+    Test.assertEqualMessage(42, e.getEvents().size(),
+        "journal: 38 points + 1 SET_FINISHED + 2 SET_CHANGED + 1 MATCH_FINISHED");
+    e.changeSet();
+    Test.assertEqualMessage(42, e.getEvents().size(), "verrou : plus de mutation");
+    return true;
+}

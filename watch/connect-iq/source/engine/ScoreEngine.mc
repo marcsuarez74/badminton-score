@@ -48,6 +48,9 @@ class ScoreEngine {
             else if (mScoreOpp > mScoreMe) { winner = 1; }
         }
         appendEvent([ScoreEvent.TYPE_SET_CHANGED, winner]);
+        if (mPhase == ScorePhase.MATCH_FINISHED) {
+            appendEvent([ScoreEvent.TYPE_MATCH_FINISHED]);
+        }
     }
 
     // Nouveau match (menu Réinitialiser ou DOWN sur MATCH_FINISHED).
@@ -102,7 +105,11 @@ class ScoreEngine {
             mSetNumber += 1;
             mScoreMe = 0;
             mScoreOpp = 0;
-            mPhase = ScorePhase.PLAYING;
+            if (mSetsMe >= mConfig.mSetsToWin || mSetsOpp >= mConfig.mSetsToWin) {
+                mPhase = ScorePhase.MATCH_FINISHED;
+            } else {
+                mPhase = ScorePhase.PLAYING;
+            }
             break;
         case ScoreEvent.TYPE_MATCH_FINISHED:
             mPhase = ScorePhase.MATCH_FINISHED;
