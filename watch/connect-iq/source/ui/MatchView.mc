@@ -199,15 +199,18 @@ class MatchView extends WatchUi.View {
     }
 
     function drawSetup(dc as Dc, w as Number, h as Number) as Void {
+        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fMedium = dc.getFontHeight(Graphics.FONT_MEDIUM);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "FORMAT", Graphics.TEXT_JUSTIFY_CENTER);
-        // Interligne réduit si le dernier preset dépasserait h*7/8 (écrans ronds).
+        var titleBottom = h / 8 + fSmall;
+        var footerTop = h * 7 / 8 - fSmall;          // coherent avec drawFooter
+        var zone = footerTop - titleBottom;
         var spacing = 3 * fMedium / 2;
-        var maxSpacing = 3 * h / 8 - fMedium;
-        if (spacing > maxSpacing) {
-            spacing = maxSpacing;
+        if (spacing * 2 + fMedium > zone) {
+            spacing = (zone - fMedium) / 2;          // resserré : items entre titre et footer
+            if (spacing < 1) { spacing = 1; }
         }
-        var y = h / 2 - spacing;
+        var y = titleBottom + (zone - (spacing * 2 + fMedium)) / 2;
         for (var i = 0; i < MatchPresets.count(); i += 1) {
             var marker = (i == mSetupIndex) ? "> " : "  ";
             dc.drawText(w / 2, y, Graphics.FONT_MEDIUM, marker + MatchPresets.label(i), Graphics.TEXT_JUSTIFY_CENTER);
