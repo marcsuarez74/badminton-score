@@ -77,16 +77,16 @@ function test_engine_trim_events(logger as Logger) as Boolean {
     var e = new ScoreEngine(MatchPresets.get(2), "m1");
     enginePoints(e, 21, 0);              // 21-0 : 22 events (21 POINT + SET_FINISHED), phase SET_RESULT
     e.changeSet();                       // 23 events, set 2, PLAYING
-    enginePoints(e, 21, 0);              // 21-0 : +22 = 45 events, MATCH_FINISHED
-    Test.assertEqualMessage(45, e.getEvents().size(), "45 events avant purge");
+    enginePoints(e, 21, 0);              // 21-0 : +22 = 45 events + MATCH_FINISHED = 46
+    Test.assertEqualMessage(46, e.getEvents().size(), "46 events avant purge");
     Test.assertEqualMessage(2, e.getSetsMe(), "sets 2-0");
-    e.trimEvents(10);                    // purge les 35 plus anciens (base avance)
+    e.trimEvents(10);                    // purge les 36 plus anciens (base avance)
     Test.assertEqualMessage(10, e.getEvents().size(), "journal purge : 10");
     Test.assertEqualMessage(2, e.getSetsMe(), "etat derive intact apres purge (sets)");
     Test.assertEqualMessage(21, e.getScoreMe(), "etat derive intact apres purge (score)");
     Test.assertEqualMessage(2, e.getPhase(), "etat derive intact apres purge (phase)");
-    Test.assertEqualMessage(36, e.getEvent(0)[2], "premier event retenu : seq 36");
-    Test.assertEqualMessage(45, e.getEvent(9)[2], "dernier event : seq 45");
+    Test.assertEqualMessage(37, e.getEvent(0)[2], "premier event retenu : seq 37");
+    Test.assertEqualMessage(46, e.getEvent(9)[2], "dernier event : seq 46");
     return true;
 }
 ```
@@ -197,6 +197,11 @@ API restore / trim / getters (à la fin, après `getEventId`) :
         mBaseLastSetScoreMe = base[6];
         mBaseLastSetScoreOpp = base[7];
         mEvents = events;
+        // la séquence repart du dernier event journalisé (sinon réinitialisée) —
+        // correction validée en TDD (test_engine_restore_then_extend : "m1:9") ;
+        // meta "ls" (Task 2) = filet si le journal est entièrement purgé.
+        var n = events.size();
+        if (n > 0) { mLastSequence = events[n - 1][2]; }
         replay();
     }
 
