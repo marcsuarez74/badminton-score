@@ -391,6 +391,59 @@ function test_engine_undo_sequence_monotonic(logger as Logger) as Boolean {
     return true;
 }
 
+// ---- ScoreEngine : état de base + restore + purge (spec §7.2, Phase 3) ----
+
+(:test)
+function test_engine_restore_roundtrip(logger as Logger) as Boolean {
+    var e1 = new ScoreEngine(MatchPresets.get(2), "m1");
+    enginePoints(e1, 21, 19);           // SET_RESULT, sets 1-0
+    var e2 = new ScoreEngine(MatchPresets.get(2), "m1");
+    e2.restore(e1.getBaseState(), e1.getEvents());
+    Test.assertEqualMessage(e1.getPhase(), e2.getPhase(), "restore : phase identique");
+    Test.assertEqualMessage(e1.getScoreMe(), e2.getScoreMe(), "restore : score me");
+    Test.assertEqualMessage(e1.getScoreOpp(), e2.getScoreOpp(), "restore : score opp");
+    Test.assertEqualMessage(e1.getSetsMe(), e2.getSetsMe(), "restore : sets me");
+    Test.assertEqualMessage(e1.getSetNumber(), e2.getSetNumber(), "restore : set number");
+    Test.assertEqualMessage(e1.getLastSetScoreMe(), e2.getLastSetScoreMe(), "restore : last set me");
+    Test.assertEqualMessage(e1.getEvents().size(), e2.getEvents().size(), "restore : journal");
+    e2.undo();                           // l'undo marche après restore
+    Test.assertEqualMessage(0, e2.getPhase(), "restore + undo : set repris (PLAYING)");
+    Test.assertEqualMessage(21, e2.getScoreMe(), "restore + undo : 21-19");
+    Test.assertEqualMessage(0, e2.getSetsMe(), "restore + undo : sets 0-0");
+    return true;
+}
+
+(:test)
+function test_engine_restore_then_extend(logger as Logger) as Boolean {
+    var e1 = new ScoreEngine(MatchPresets.get(2), "m1");
+    enginePoints(e1, 5, 3);              // PLAYING 5-3
+    var e2 = new ScoreEngine(MatchPresets.get(2), "m1");
+    e2.restore(e1.getBaseState(), e1.getEvents());
+    e2.pointMe();                        // prolonger après restore : base + events + nouvel event
+    Test.assertEqualMessage(6, e2.getScoreMe(), "restore + point : 6-3");
+    Test.assertEqualMessage(9, e2.getEvents().size(), "journal 8 + 1");
+    Test.assertEqualMessage("m1:9", e2.getEventId(8), "sequence poursuite (9)");
+    return true;
+}
+
+(:test)
+function test_engine_trim_events(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2), "m1");
+    enginePoints(e, 21, 0);              // 21-0 : 22 events (21 POINT + SET_FINISHED), phase SET_RESULT
+    e.changeSet();                       // 23 events, set 2, PLAYING
+    enginePoints(e, 21, 0);              // 21-0 : +23 = 46 events (21 POINT + SET_FINISHED + MATCH_FINISHED)
+    Test.assertEqualMessage(46, e.getEvents().size(), "46 events avant purge");
+    Test.assertEqualMessage(2, e.getSetsMe(), "sets 2-0");
+    e.trimEvents(10);                    // purge les 36 plus anciens (base avance)
+    Test.assertEqualMessage(10, e.getEvents().size(), "journal purge : 10");
+    Test.assertEqualMessage(2, e.getSetsMe(), "etat derive intact apres purge (sets)");
+    Test.assertEqualMessage(21, e.getScoreMe(), "etat derive intact apres purge (score)");
+    Test.assertEqualMessage(2, e.getPhase(), "etat derive intact apres purge (phase)");
+    Test.assertEqualMessage(37, e.getEvent(0)[2], "premier event retenu : seq 37");
+    Test.assertEqualMessage(46, e.getEvent(9)[2], "dernier event : seq 46");
+    return true;
+}
+
 (:test)
 function test_engine_match_locked(logger as Logger) as Boolean {
     var e = new ScoreEngine(MatchPresets.get(2), "m1");
