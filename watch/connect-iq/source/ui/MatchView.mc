@@ -185,25 +185,33 @@ class MatchView extends WatchUi.View {
         }
     }
 
-    // Ligne d'aide du bas : FONT_SMALL si le texte tient, FONT_TINY sinon
-    // (lisibilité §15.2 — FONT_TINY seul était illisible sur AMOLED 454).
+    // Ligne d'aide du bas : FONT_SMALL si le texte tient, FONT_TINY sinon.
+    // Bas du texte à h*7/8 : sur écran ROND, tout ce qui descend plus bas
+    // déborde du cercle (corde quasi nulle au bas) — leçon Task 6 simu.
     function drawFooter(dc as Dc, w as Number, h as Number, text as String) as Void {
         var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
-        if (dc.getTextWidthInPixels(text, Graphics.FONT_SMALL) > w - 20) {
-            dc.drawText(w / 2, h - fSmall - h / 20, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        var y = h * 7 / 8 - fSmall;
+        if (dc.getTextWidthInPixels(text, Graphics.FONT_SMALL) > w * 4 / 5) {
+            dc.drawText(w / 2, y, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
         } else {
-            dc.drawText(w / 2, h - fSmall - h / 20, Graphics.FONT_SMALL, text, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(w / 2, y, Graphics.FONT_SMALL, text, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
     function drawSetup(dc as Dc, w as Number, h as Number) as Void {
         var fMedium = dc.getFontHeight(Graphics.FONT_MEDIUM);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "FORMAT", Graphics.TEXT_JUSTIFY_CENTER);
-        var y = h / 2 - (3 * fMedium / 2);
+        // Interligne réduit si le dernier preset dépasserait h*7/8 (écrans ronds).
+        var spacing = 3 * fMedium / 2;
+        var maxSpacing = 3 * h / 8 - fMedium;
+        if (spacing > maxSpacing) {
+            spacing = maxSpacing;
+        }
+        var y = h / 2 - spacing;
         for (var i = 0; i < MatchPresets.count(); i += 1) {
             var marker = (i == mSetupIndex) ? "> " : "  ";
             dc.drawText(w / 2, y, Graphics.FONT_MEDIUM, marker + MatchPresets.label(i), Graphics.TEXT_JUSTIFY_CENTER);
-            y += 3 * fMedium / 2;
+            y += spacing;
         }
         drawFooter(dc, w, h, "START = OK");
     }
