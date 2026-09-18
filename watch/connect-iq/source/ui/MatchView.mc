@@ -10,7 +10,7 @@ module MatchScreen {
     const CONFIRM_SET = 2;    // confirmation inline « terminer set ? » (DOWN=OUI BACK=NON)
     const SET_RESULT = 3;     // set terminé auto, en attente « set suivant » (DOWN)
     const MATCH_FINISHED = 4; // match terminé (DOWN = nouveau match)
-    const MENU = 5;           // menu inline UP-long (Reprendre / Quitter)
+    const MENU = 5;           // menu inline UP-long (Reprendre / Format / Reset / Quitter)
 }
 
 class MatchView extends WatchUi.View {
@@ -45,7 +45,11 @@ class MatchView extends WatchUi.View {
 
     function onBack() as Boolean {
         if (mScreen == MatchScreen.SETUP) {
-            return false;   // aucun match en cours : BACK ferme l'app (comportement CIQ naturel)
+            if (mEngine != null) {          // match existant (menu FORMAT / fin de match) : BACK = annuler
+                syncScreen();               // retour SCORE / SET_RESULT / MATCH_FINISHED selon la phase
+                return true;
+            }
+            return false;                   // pré-match : BACK ferme l'app (comportement CIQ naturel, Phase 1)
         }
         if (mScreen == MatchScreen.SCORE) {
             mEngine.pointOpponent();
@@ -308,6 +312,7 @@ class MatchView extends WatchUi.View {
         var spacing = 5 * fMedium / 4;
         if (spacing * 3 + fMedium > zone) {
             spacing = (zone - fMedium) / 3;         // compression (fr55)
+            if (spacing < 1) { spacing = 1; }
         }
         var y = titleBottom + (zone - (spacing * 3 + fMedium)) / 2;
         for (var i = 0; i < items.size(); i += 1) {
