@@ -17,6 +17,7 @@
 | D4 | Moteur de score | Paramétrique `targetScore / winBy / cap / setsToWin`, event-sourcing, testable sans UI |
 | D5 | Règles 21 pts | Premier à 21, écart 2, plafond 30 (règles BWF classiques) |
 | D6 | Règles 15 pts | Premier à 15, écart 2, plafond 21 (style format expérimental BWF 2025, choix du propriétaire) |
+| D6b | Règles 11 pts | Premier à 11, écart 2, **sans plafond** (cap = 0 — déuce sans limite, choix du propriétaire) |
 | D7 | UNDO | Annule le dernier événement quel qu'il soit, sauf `MATCH_FINISHED` |
 | D8 | Boutons | START=POINT MOI · BACK=POINT ADVERSAIRE · UP=UNDO · DOWN=CHANGEMENT DE SET (confirmé) · UP-long=menu inline · LIGHT réservé |
 | D9 | Architecture UI | Mono-écran + états rendus inline (pas de pile `pushView` en match) |
@@ -33,7 +34,7 @@ Compter les points d'un match de badminton **pendant le match**, d'une pression 
 
 Périmètre fonctionnel :
 - Écran de score lisible instantanément (set, score, sets gagnés, format, état du match).
-- Formats configurables : 21 points et 15 points.
+- Formats configurables : 11, 15 et 21 points.
 - 4 actions boutons : point moi, point adversaire, annuler, changement de set.
 - Historique d'événements complet + undo réel (event-sourcing).
 - Persistance locale (survit à fermeture/redémarrage).
@@ -135,21 +136,23 @@ Règles d'implémentation :
 
 ### 4.1 Paramétrage (aucun chiffre codé en dur)
 
-`MatchConfig = { targetScore, winBy, cap, setsToWin }`
+`MatchConfig = { targetScore, winBy, cap, setsToWin }` — `cap = 0` signifie **sans plafond**.
 
 | Format | targetScore | winBy | cap | setsToWin | Origine |
 |---|---|---|---|---|---|
 | 21 points | 21 | 2 | 30 | 2 | Règles BWF classiques (rally point) |
 | 15 points | 15 | 2 | 21 | 2 | Choix du propriétaire (style BWF expérimental 2025) |
+| 11 points | 11 | 2 | 0 (aucun) | 2 | Choix du propriétaire |
 
 ### 4.2 Règles de fin de set
 
-Le set est gagné dès que : `score ≥ targetScore ET (score − score_adversaire ≥ winBy OU score ≥ cap)`.
+Le set est gagné dès que : `score ≥ targetScore ET (score − score_adversaire ≥ winBy OU (cap > 0 ET score ≥ cap))`.
 
 Conséquences (testées unitairement) :
 - 21 pts : 21-19 gagne ; 20-20 → déuce, il faut 2 d'écart ; 29-29 → le 30e point gagne (cap).
 - 15 pts : 15-13 gagne ; 14-14 → déuce ; 20-20 → le 21e point gagne (cap).
-- Score maximal affichable : `cap` (30 / 21).
+- 11 pts : 11-9 gagne ; 10-10 → déuce, il faut 2 d'écart, **sans plafond** (le set peut durer indéfiniment, ex. 16-14).
+- Score maximal affichable : `cap` (30 / 21) ou non borné en mode 11 points (l'affichage réserve la place).
 
 ### 4.3 Fin de match
 
@@ -187,7 +190,7 @@ SCORE (défaut)          CONFIRM_SET             SET_RESULT              MATCH_F
 ```
 
 - **SCORE** : `SET n` / gros chiffres (~40 % de l'écran) / `MOI LUI` / `21 POINTS` / `SETS 1-0`. Mise à jour instantanée, zéro animation.
-- **Démarrage** : si match en cours persisté → retour direct sur SCORE. Sinon écran **Setup** (format 15/21 : UP/DOWN, START valider) — mémorisé pour les matchs suivants.
+- **Démarrage** : si match en cours persisté → retour direct sur SCORE. Sinon écran **Setup** (format 11/15/21 : UP/DOWN, START valider) — mémorisé pour les matchs suivants.
 - **Menu inline** (UP-long) : liste verticale (DOWN/UP naviguent, START valide, BACK ferme le menu) : `Reprendre`, `Changer de format`, `Réinitialiser le match`, `Quitter`.
 - Adaptations par device : layout identique, noir/blanc partout ; accents couleur + zones tap sur epix Pro uniquement.
 
@@ -206,7 +209,7 @@ watch/connect-iq/
 ├── source/
 │   ├── App.mc                # AppBase : getInitialView, onStart (restauration), onStop (sauvegarde)
 │   ├── engine/               # PUR (aucun import UI/Graphics) — testable Run No Evil
-│   │   ├── MatchConfig.mc    # targetScore/winBy/cap/setsToWin + presets 15/21
+│   │   ├── MatchConfig.mc    # targetScore/winBy/cap/setsToWin + presets 11/15/21
 │   │   ├── ScoreEvent.mc     # types, séquence, id, timestamps
 │   │   ├── ScoreEngine.mc    # mutations + replay + undo
 │   │   └── Rules.mc          # fin de set / fin de match
@@ -240,7 +243,7 @@ Le moteur ne connaît ni Toybox.Graphics ni WatchUi. L'UI observe le moteur via 
 
 ```monkeyc
 // MatchConfig
-{ targetScore: Int, winBy: Int, cap: Int, setsToWin: Int }
+{ targetScore: Int, winBy: Int, cap: Int /* 0 = sans plafond */, setsToWin: Int }
 
 // ScoreEvent
 {
@@ -410,6 +413,8 @@ Reportée (D10). Si activée plus tard : app React Native + TypeScript recevant 
 | Déuce 21 | 20-20 → POINT_ME | 21-20, set **non** fini |
 | Cap 21 pts | 29-29 → POINT_ME (config 21) | 30-29, SET_FINISHED |
 | Écart 15 pts | 14-14 → POINT_ME | 15-14, set non fini |
+| Déuce 11 pts | 10-10 → POINT_ME | 11-10, set non fini |
+| Sans cap (11 pts) | déuce prolongée 10-10 → 16-14 | SET_FINISHED à 16-14 (aucun plafond) |
 | Cap 15 pts | 20-20 → POINT_ME (config 15) | 21-20, SET_FINISHED |
 | Set fini normal | 21-19 (config 21) | SET_FINISHED, sets 1-0 |
 | Changement de set | confirmé | set suivant 0-0, SET_CHANGED |
