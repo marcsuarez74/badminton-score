@@ -21,6 +21,9 @@
 - Textes UI en majuscules **sans accents** (fiabilité de rendu MIP 2 couleurs).
 - Un set fermé manuellement (SET_CHANGED) crédite le **leader strict** ; en cas d'égalité, personne (détail non spécifié §4.4, à confirmer en Phase 2 si besoin).
 - App id distinct du prototype : `59EEABC33F1813AE142E338E63007E53` (l'app s'installera **à côté** de ButtonTest, pas à la place).
+- `App.mc` stub dès la Task 1 : monkeyc **exige** la classe d'entry point du manifest dès le premier build (empiriquement vérifié : sinon `Cannot find entry point class '$.BadmintonApp'` sur tous les builds) — remplacé par la vraie app en Task 5.
+- **Sémantique Monkey C `import` vs `using`** (découverte Task 1) : `using Toybox.Graphics` ne résout PAS `Dc` dans une annotation `dc as Dc` — il faut `import Toybox.Graphics`. Symptôme : `Cannot resolve type 'Dc'`. À appliquer dans tout fichier annotant `Dc` (Task 5).
+- **Corrections Task 5 (erreurs du plan, prouvées au build)** : `Graphics.TEXT_CENTER` n'existe pas dans le SDK 9.2.0 → `Graphics.TEXT_JUSTIFY_CENTER` ; `import Toybox.Lang` requis dans MatchView ET MatchDelegate pour les annotations Boolean/Number ; `menuSelect()` restructuré if/else (System.exit non retournant = warning unreachable) ; branche CONFIRM_SET ajoutée dans `onDown()` (DOWN=OUI était inatteignable avec le code initial du plan).
 
 **Git :** branche `phase-1` depuis `main` (dérogation worktree identique à la Phase 0 : repo mono-dev, aucun travail parallèle). Créer la branche en début d'exécution.
 
@@ -331,11 +334,12 @@ Ajouter en fin de `source/tests/EngineTest.mc` :
 
 // Compte n points par côté en alternant (helper de test — l'alternance évite
 // de déclencher SET_FINISHED prématurément, ex. 11-0 sur le preset 21).
-function enginePoints(e as ScoreEngine, me as Number, opp as Number) as Void {
+// NB : `me` est un mot réservé Monkey C — premier paramètre nommé nMe.
+function enginePoints(e as ScoreEngine, nMe as Number, opp as Number) as Void {
     var i = 0;
     var j = 0;
-    while (i < me || j < opp) {
-        if (i < me) { e.pointMe(); i += 1; }
+    while (i < nMe || j < opp) {
+        if (i < nMe) { e.pointMe(); i += 1; }
         if (j < opp) { e.pointOpponent(); j += 1; }
     }
 }
@@ -361,7 +365,7 @@ function test_engine_points_and_replay(logger as Logger) as Boolean {
     e.pointOpponent();
     Test.assertEqualMessage(1, e.getScoreMe(), "score me 1");
     Test.assertEqualMessage(2, e.getScoreOpp(), "1-2 apres 2 POINT_OPPONENT");
-    Test.assertEqualMessage(2, e.getEvents().size(), "journal = 2 events");
+    Test.assertEqualMessage(3, e.getEvents().size(), "journal = 3 events");
     Test.assertEqualMessage(0, e.getPhase(), "toujours PLAYING");
     return true;
 }
@@ -458,11 +462,27 @@ function test_engine_match_finished_2_sets(logger as Logger) as Boolean {
     enginePoints(e, 21, 0);
     Test.assertEqualMessage(2, e.getSetsMe(), "sets 2-0");
     Test.assertEqualMessage(2, e.getPhase(), "MATCH_FINISHED");
-    Test.assertEqualMessage(45, e.getEvents().size(),
-        "journal: 42 points + 2 SET_FINISHED + 1 MATCH_FINISHED");
+    Test.assertEqualMessage(46, e.getEvents().size(),
+        "journal: 42 points + 2 SET_FINISHED + 1 SET_CHANGED + 1 MATCH_FINISHED");
     e.pointMe();   // sans effet : match verrouillé (§4.5)
-    Test.assertEqualMessage(45, e.getEvents().size(), "point ignore apres MATCH_FINISHED");
+    Test.assertEqualMessage(46, e.getEvents().size(), "point ignore apres MATCH_FINISHED");
     Test.assertEqualMessage(21, e.getScoreMe(), "scores du dernier set figes 21-0");
+    return true;
+}
+
+(:test)
+function test_engine_manual_set_change_finishes_match(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 0);
+    e.changeSet();                    // set 2
+    enginePoints(e, 15, 2);
+    e.changeSet();                    // changement manuel : leader crédité -> 2-0
+    Test.assertEqualMessage(2, e.getSetsMe(), "sets 2-0 via SET_CHANGED manuel");
+    Test.assertEqualMessage(2, e.getPhase(), "MATCH_FINISHED (spec §4.3)");
+    Test.assertEqualMessage(42, e.getEvents().size(),
+        "journal: 38 points + 1 SET_FINISHED + 2 SET_CHANGED + 1 MATCH_FINISHED");
+    e.changeSet();
+    Test.assertEqualMessage(42, e.getEvents().size(), "verrou : plus de mutation");
     return true;
 }
 ```
@@ -755,7 +775,7 @@ cd watch/connect-iq
 "$SDK/bin/monkeyc" -d epix2pro51mm -f monkey.jungle -o bin/tests-epix2pro51mm.prg -y ~/keys/developer_key.der -t -w && "$SDK/bin/monkeydo" bin/tests-epix2pro51mm.prg epix2pro51mm -t
 ```
 
-Attendu : les 20 tests `PASSED` sur les 3 profils. Corriger le moteur si un test échoue (le design attendu est celui de ScoreEngine.mc Task 3 Step 4 — ne pas corriger les tests pour faire passer, sauf erreur prouvée).
+Attendu : les 21 tests `PASSED` sur les 3 profils (16 fin de Task 3, dont le test de régression C1 `test_engine_manual_set_change_finishes_match`). Corriger le moteur si un test échoue (le design attendu est celui de ScoreEngine.mc Task 3 Step 4 — ne pas corriger les tests pour faire passer, sauf erreur prouvée).
 
 - [ ] **Step 3: Commit**
 
@@ -870,6 +890,12 @@ class MatchView extends WatchUi.View {
         }
         if (mScreen == MatchScreen.SET_RESULT) {
             mEngine.changeSet();                 // « set suivant » (SET_FINISHED déjà enregistré)
+            syncScreen();
+            return true;
+        }
+        if (mScreen == MatchScreen.CONFIRM_SET) {
+            mScreen = MatchScreen.SCORE;         // DOWN = OUI ; syncScreen suivra (SCORE ou MATCH_FINISHED, fix C1)
+            mEngine.changeSet();
             syncScreen();
             return true;
         }
@@ -1100,7 +1126,7 @@ done
 ls -la bin/
 ```
 
-Attendu : 5 lignes `OK`, 5 `.prg` (~15-25 Ko), **aucun warning** (les fixes leçon Phase 0 sont intégrés). Le warning de l'icône 36x36→60x60 est toléré (icon à redessiner plus tard).
+Attendu : 5 lignes `OK`, 5 `.prg` (~15-25 Ko), **aucun warning** hors l'échelle de l'icône launcher (le PNG 36x36 est rescalé selon le device — ex. 35x35 demandé sur fr55 ; icône à redessiner plus tard).
 
 - [ ] **Step 5: Smoke test simulateur — l'app démarre sur le Setup**
 
