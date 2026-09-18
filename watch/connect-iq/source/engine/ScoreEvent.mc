@@ -1,11 +1,14 @@
 // Codes des événements du journal (tableaux positionnels, préfiguration spec §7.2).
-// [typeCode] ou [typeCode, arg] — la séquence est implicite (index dans le journal).
+// Format 6 slots [type, arg, seq, ts, prevMe, prevOpp] — voir ScoreEngine.appendEvent.
+// Séquence monotone : jamais réutilisée après undo (décision D-2, §8.2).
 module ScoreEvent {
     const TYPE_POINT_ME = 0;
     const TYPE_POINT_OPPONENT = 1;
     const TYPE_SET_FINISHED = 2;      // [TYPE_SET_FINISHED, winner] winner: 0=moi 1=adversaire
     const TYPE_SET_CHANGED = 3;       // [TYPE_SET_CHANGED, winner] winner: 0/1 crédité, -1 = déjà crédité ou égalité
     const TYPE_MATCH_FINISHED = 4;    // verrou terminal (§4.5 : ne s'annule pas)
+    const TYPE_UNDO = 5;              // réservé protocole sync Phase 4a — jamais journalisé
+                                      // (undo = retrait du dernier event, §4.5)
 }
 
 // Phases dérivées exposées par le moteur.
