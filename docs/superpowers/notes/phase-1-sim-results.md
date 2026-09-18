@@ -2,6 +2,13 @@
 
 Date : 2026-09-18 · Branche `phase-1` · Build final : commit `824dd89`
 
+## Validation matérielle (epix Pro 51 mm réel, 2026-09-19)
+
+- Sideload openMTP → `GARMIN/APPS/` OK (app « Badminton » à côté de ButtonTest, id distinct)
+- **Match complet 2-1 en 21 points compté aux boutons** : ✅ (critère de sortie §16 atteint)
+- BACK = point adversaire sans quitter ✅ · UP en SCORE = sans effet (UNDO Phase 2) ✅ · DOWN-long = hotkey musique, score intact (U2 Phase 0 confirmé) ✅
+- Lisibilité à bout de bras ✅ · Aucun texte hors cadre après les fixes UI
+
 ## Checklist match complet par profil (validateur : propriétaire, simu)
 
 | Profil | Setup 3 formats | Match complet 21 pts (2-1) | Match 11 pts (2-0) | Confirm. set (DOWN=OUI/BACK=NON) | Menu inline (UP-long) | Lisibilité | Sortie du cadre / chevauchements |
