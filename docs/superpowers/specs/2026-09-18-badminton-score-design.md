@@ -470,6 +470,8 @@ Chaque phase : petites étapes, code compilable à chaque commit, tests, documen
 | U6 | Comportement du fichier de logs si le PRG est renommé | Test sideload |
 | U7 | Fiabilité GCM (garanties de callback makeWebRequest) sur les 3 cibles | Test Phase 4a, timeouts applicatifs prévus |
 
+> **Résultats Phase 0 (U1-U6 levées) :** voir `docs/superpowers/notes/2026-09-18-phase-0-findings.md`.
+
 ---
 
 ## 18. Sources officielles (vérifiées le 2026-09-18)
