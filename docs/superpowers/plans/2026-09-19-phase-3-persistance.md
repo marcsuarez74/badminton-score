@@ -1,6 +1,6 @@
 # Phase 3 — Persistance — Plan d'implémentation
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal :** Le match survit à la fermeture/relance de l'app (kill/restart sans perte, §16 ligne 3) ; reprise directe sur le bon écran (§5 Démarrage) ; format mémorisé ; historique borné 200 événements avec purge par lots (§7.2).
 
@@ -25,14 +25,14 @@
 - Modify: `watch/connect-iq/source/engine/ScoreEngine.mc`
 - Test: `watch/connect-iq/source/tests/EngineTest.mc` (3 tests)
 
-- [ ] **Step 1: Créer la branche**
+- [x] **Step 1: Créer la branche**
 
 ```bash
 cd /Users/marcsuarez/Documents/badminton-score
 git checkout main -q && git pull -q && git checkout -b phase-3
 ```
 
-- [ ] **Step 2: Écrire les 3 tests (rouge attendu : `restore`/`trimEvents`/`getBaseState` inconnus)**
+- [x] **Step 2: Écrire les 3 tests (rouge attendu : `restore`/`trimEvents`/`getBaseState` inconnus)**
 
 Dans `EngineTest.mc`, section protocole (après `test_engine_undo_sequence_monotonic`), ajouter :
 
@@ -91,7 +91,7 @@ function test_engine_trim_events(logger as Logger) as Boolean {
 }
 ```
 
-- [ ] **Step 3: Vérifier le rouge**
+- [x] **Step 3: Vérifier le rouge**
 
 ```bash
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
@@ -100,7 +100,7 @@ SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")
 ```
 Attendu : échec de compilation (`restore`/`trimEvents`/`getBaseState` inconnus).
 
-- [ ] **Step 4: Implémenter le moteur** — dans `ScoreEngine.mc` :
+- [x] **Step 4: Implémenter le moteur** — dans `ScoreEngine.mc` :
 
 Champs (après `mLastSequence`) :
 
@@ -229,7 +229,7 @@ API restore / trim / getters (à la fin, après `getEventId`) :
     function getLastSequence() as Number { return mLastSequence; }
 ```
 
-- [ ] **Step 5: Vérifier le vert**
+- [x] **Step 5: Vérifier le vert**
 
 ```bash
 "$SDK/bin/monkeyc" -d epix2pro51mm -f watch/connect-iq/monkey.jungle \
@@ -237,9 +237,9 @@ API restore / trim / getters (à la fin, après `getEventId`) :
 open "$SDK/bin/ConnectIQ.app" && sleep 6
 "$SDK/bin/monkeydo" watch/connect-iq/bin/badmintonscore-epix2pro51mm-test.prg epix2pro51mm -t
 ```
-Attendu : `PASSED (passed=33, failed=0, errors=0)` (30 + 3). **Point d'attention** : les 30 tests existants doivent rester verts — le seul changement comportemental est `replay()` qui part maintenant de la base (nulle pour eux).
+Attendu : `PASSED (passed=35, failed=0, errors=0)` (30 + 5, dont 2 de revue). **Point d'attention** : les 30 tests existants doivent rester verts — le seul changement comportemental est `replay()` qui part maintenant de la base (nulle pour eux).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add watch/connect-iq/source/engine/ScoreEngine.mc watch/connect-iq/source/tests/EngineTest.mc
@@ -260,7 +260,7 @@ git commit -m "feat(phase3): état de base du moteur — restore(base, events) e
 - `badminton_prefs_v1` = Number (presetIndex)
 - Constantes : `CHUNK = 30`, `MAX_EVENTS = 200`, `KEEP = 175`.
 
-- [ ] **Step 1: Écrire les 3 tests (rouge attendu : MatchStore inconnu)**
+- [x] **Step 1: Écrire les 3 tests (rouge attendu : MatchStore inconnu)**
 
 Nouveau fichier `watch/connect-iq/source/tests/StoreTest.mc` :
 
@@ -316,7 +316,7 @@ function test_store_prefs(logger as Logger) as Boolean {
 }
 ```
 
-- [ ] **Step 2: Vérifier le rouge**
+- [x] **Step 2: Vérifier le rouge**
 
 ```bash
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
@@ -325,7 +325,7 @@ SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")
 ```
 Attendu : échec (`MatchStore` inconnu).
 
-- [ ] **Step 3: Implémenter `MatchStore`** — nouveau fichier `watch/connect-iq/source/MatchStore.mc` :
+- [x] **Step 3: Implémenter `MatchStore`** — nouveau fichier `watch/connect-iq/source/MatchStore.mc` :
 
 ```monkeyc
 import Toybox.Application.Storage;
@@ -425,7 +425,7 @@ module MatchStore {
 }
 ```
 
-- [ ] **Step 4: Vérifier le vert**
+- [x] **Step 4: Vérifier le vert**
 
 ```bash
 "$SDK/bin/monkeyc" -d epix2pro51mm -f watch/connect-iq/monkey.jungle \
@@ -433,9 +433,9 @@ module MatchStore {
 open "$SDK/bin/ConnectIQ.app" && sleep 6
 "$SDK/bin/monkeydo" watch/connect-iq/bin/badmintonscore-epix2pro51mm-test.prg epix2pro51mm -t
 ```
-Attendu : `PASSED (passed=36, failed=0, errors=0)` (33 + 3). **Si Storage échoue dans le runner** (getValue/setValue indisponibles au simu test — improbable, API système) : le rapport l'indiquera, ne pas contourner en mockant — escalader au contrôleur.
+Attendu : `PASSED (passed=39, failed=0, errors=0)` (33 + 3). **Si Storage échoue dans le runner** (getValue/setValue indisponibles au simu test — improbable, API système) : le rapport l'indiquera, ne pas contourner en mockant — escalader au contrôleur.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add watch/connect-iq/source/MatchStore.mc watch/connect-iq/source/tests/StoreTest.mc
@@ -451,7 +451,7 @@ git commit -m "feat(phase3): MatchStore — meta + lots plats d'événements + p
 - Modify: `watch/connect-iq/source/App.mc`
 - Pas de test unitaire (UI) — validation simu Task 4. Builds ×5 + 36 tests verts exigés.
 
-- [ ] **Step 1: MatchView.initialize — reprise §5** — remplacer :
+- [x] **Step 1: MatchView.initialize — reprise §5** — remplacer :
 
 ```monkeyc
     function initialize() {
@@ -472,13 +472,14 @@ par :
             mMatchId = saved["mid"];
             mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
             mEngine.restore(saved["base"], saved["events"]);
+            mEngine.setLastSequence(saved["ls"]);   // filet D-2 APRÈS restore (undo préalable)
             mScreen = MatchScreen.SCORE;              // syncScreen dérive SCORE/SET_RESULT/MATCH_FINISHED
         }
         WatchUi.requestUpdate();
     }
 ```
 
-- [ ] **Step 2: syncScreen — sauvegarde à chaque mutation (§7.2)** — ajouter en tête de `syncScreen` :
+- [x] **Step 2: syncScreen — sauvegarde à chaque mutation (§7.2)** — ajouter en tête de `syncScreen` :
 
 ```monkeyc
     function syncScreen() as Void {
@@ -489,7 +490,7 @@ par :
         ... (reste inchangé)
 ```
 
-- [ ] **Step 3: menuSelect RESET via syncScreen** (sauvegarde du nouveau match) — remplacer la branche 2 :
+- [x] **Step 3: menuSelect RESET via syncScreen** (sauvegarde du nouveau match) — remplacer la branche 2 :
 
 ```monkeyc
         } else if (mMenuIndex == 2) {
@@ -498,7 +499,7 @@ par :
         }
 ```
 
-- [ ] **Step 4: DOWN sur MATCH_FINISHED purge le storage** (le match n'est plus « en cours ») — remplacer la branche MATCH_FINISHED de `onDown` :
+- [x] **Step 4: DOWN sur MATCH_FINISHED purge le storage** (le match n'est plus « en cours ») — remplacer la branche MATCH_FINISHED de `onDown` :
 
 ```monkeyc
         if (mScreen == MatchScreen.MATCH_FINISHED) {
@@ -509,13 +510,13 @@ par :
         }
 ```
 
-- [ ] **Step 5: startMatch mémorise le format** — dans `startMatch`, après `mMatchId = genMatchId();` :
+- [x] **Step 5: startMatch mémorise le format** — dans `startMatch`, après `mMatchId = genMatchId();` :
 
 ```monkeyc
         MatchStore.savePresetIndex(mSetupIndex);
 ```
 
-- [ ] **Step 6: MatchView.persist() + App.onStop (filet §7.2)** — dans MatchView (après `startMatch`) :
+- [x] **Step 6: MatchView.persist() + App.onStop (filet §7.2)** — dans MatchView (après `startMatch`) :
 
 ```monkeyc
     // Filet de sauvegarde (App.onStop, §7.2) — chaque mutation sauvegarde déjà.
@@ -555,7 +556,7 @@ class BadmintonApp extends Application.AppBase {
 }
 ```
 
-- [ ] **Step 7: Build × 5 + tests verts**
+- [x] **Step 7: Build × 5 + tests verts**
 
 ```bash
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
@@ -568,9 +569,9 @@ done
 open "$SDK/bin/ConnectIQ.app" && sleep 6
 "$SDK/bin/monkeydo" watch/connect-iq/bin/badmintonscore-epix2pro51mm-test.prg epix2pro51mm -t
 ```
-Attendu : 5 builds OK, `PASSED (passed=36, failed=0, errors=0)`.
+Attendu : 5 builds OK, `PASSED (passed=39, failed=0, errors=0)`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add watch/connect-iq/source/ui/MatchView.mc watch/connect-iq/source/App.mc
@@ -583,12 +584,12 @@ git commit -m "feat(phase3): reprise au lancement (§5), sauvegarde par mutation
 
 **Files:** aucun — le contrôleur lance les instances successives ; le propriétaire valide.
 
-- [ ] **Step 1 (epix2pro51mm)** : lancer l'app → match en 21 pts, compter 7-3 → menu QUITTER → **relancer l'app** → retour direct **SCORE 7-3** (reprise §5)
-- [ ] **Step 2** : compter jusqu'à 21-19 (SET_RESULT, sets 1-0) → QUITTER → relancer → **« SET 1 TERMINE », sets 1-0** → UP → **retour SCORE 21-19, sets 0-0** (undo après reprise)
-- [ ] **Step 3** : finir le match 2-0 → QUITTER → relancer → **MATCH TERMINE 2-1/2-0 affiché** → DOWN → SETUP → relancer → **Setup propre** (match purgé)
-- [ ] **Step 4** : démarrer un match en 11 pts → QUITTER → relancer → reprise 11 pts ; DOWN sur MATCH_FINISHED d'un autre match → relancer → **Setup présélectionne 11 POINTS** (format mémorisé)
-- [ ] **Step 5 (fr55 ou instinct2)** : un match en cours → QUITTER → relancer → reprise directe SCORE
-- [ ] **Step 6** : résultats consignés dans `docs/superpowers/notes/phase-3-sim-results.md` + commit
+- [x] **Step 1 (epix2pro51mm)** : lancer l'app → match en 21 pts, compter 7-3 → menu QUITTER → **relancer l'app** → retour direct **SCORE 7-3** (reprise §5)
+- [x] **Step 2** : compter jusqu'à 21-19 (SET_RESULT, sets 1-0) → QUITTER → relancer → **« SET 1 TERMINE », sets 1-0** → UP → **retour SCORE 21-19, sets 0-0** (undo après reprise)
+- [x] **Step 3** : finir le match 2-0 → QUITTER → relancer → **MATCH TERMINE 2-1/2-0 affiché** → DOWN → SETUP → relancer → **Setup propre** (match purgé)
+- [x] **Step 4** : démarrer un match en 11 pts → QUITTER → relancer → reprise 11 pts ; DOWN sur MATCH_FINISHED d'un autre match → relancer → **Setup présélectionne 11 POINTS** (format mémorisé)
+- [x] **Step 5 (fr55 ou instinct2)** : un match en cours → QUITTER → relancer → reprise directe SCORE
+- [x] **Step 6** : résultats consignés dans `docs/superpowers/notes/phase-3-sim-results.md` + commit
 
 ---
 
