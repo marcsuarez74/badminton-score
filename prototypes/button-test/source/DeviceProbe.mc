@@ -1,4 +1,3 @@
-import Toybox.Lang;
 using Toybox.System;
 
 module DeviceProbe {

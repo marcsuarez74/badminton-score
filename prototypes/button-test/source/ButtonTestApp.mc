@@ -1,6 +1,5 @@
 using Toybox.Application;
 using Toybox.System;
-using Toybox.WatchUi;
 
 class ButtonTestApp extends Application.AppBase {
 
