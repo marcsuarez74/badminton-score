@@ -52,7 +52,7 @@ Hors périmètre de ce document (specs futures) : détail API backend, dashboard
 |---|---|---|---|
 | Device ID SDK | `epix2pro42mm` / `epix2pro47mm` / `epix2pro51mm` | `fr55` | `instinct2` |
 | Niveau API CIQ | 5.2 | 3.4 | 3.4 |
-| Type d'app retenue | Watch App **131 072 o** | Watch App **131 072 o** | Watch App **98 304 o** |
+| Type d'app retenue | Watch App **786 432 o (768 Ko)** | Watch App **131 072 o (128 Ko)** | Watch App **98 304 o (96 Ko)** |
 | Écran | Rond AMOLED 390/416/454× | Rond MIP 208×208, 8 couleurs | Semi-octogone MIP 176×176, **2 couleurs** |
 | Tactile | Oui | Non | Non |
 | Boutons | LIGHT, UP, DOWN, BACK, START | idem | idem |
@@ -257,11 +257,15 @@ Le moteur ne connaît ni Toybox.Graphics ni WatchUi. L'UI observe le moteur via 
 
 ### 7.2 Persistance (`Application.Storage`)
 
-- Disponible sur les 3 cibles (API 2.4+ ; notre minApi 3.4). Limites documentées : 8 Ko/valeur, 128 Ko total.
-- Clé versionnée : `match_v1` →
-  `{ schemaVersion, matchId, config, currentSet, setsWon, history[≤200], pendingEvents[≤50], status }`
-- Écriture **à chaque mutation** (setValue synchrone) + `onStop`. Volume estimé : 100-300 événements/match ≈ 30-90 Ko en JSON Monkey C → **history bornée à 200 événements** (les plus anciens sont purgeables : l'undo n'a besoin que du dernier événement ; la sync n'a besoin que des événements non acquittés). `pendingEvents` borné à 50 (au-delà : les plus anciens acquittables purgés — jamais de perte de points non-synchronisés tant que la file est < 50).
-- Restauration : `onStart` → lecture → replay → état exact. Survit à : fermeture app, redémarrage app, redémarrage montre.
+- Disponible sur les 3 cibles (API 2.4+ ; notre minApi 3.4). Limites documentées : **8 Ko par valeur**, 128 Ko au total.
+- **Découpage en plusieurs clés** (une valeur de 8 Ko max chacune) :
+  - `match_meta_v1` → `{ schemaVersion, matchId, config, currentSet, setsWon, status, lastSequence }` (état dérivé, quelques octets)
+  - `match_events_v1.<n>` → lots d'événements (~25-30 par clé, sérialisation compacte : tableaux positionnels plutôt que JSON verbeux)
+  - `match_pending_v1.<n>` → événements non acquittés (même format)
+- Écriture **à chaque mutation** (setValue synchrone) + `onStop`. Volume : ~150-250 o/événement compacté → un match de ~120 points tient dans 4-6 clés, marge confortable.
+- **Restauration** : lecture de `match_meta_v1` (état dérivé stocké) + événements ; **pas de replay complet nécessaire** (l'undo n'utilise que le(s) dernier(s) événement(s), la sync n'utilise que les événements non acquittés). L'historique est borné à **200 événements** ; au-delà, les plus anciens sont purgés par lots (jamais le dernier événement, jamais un événement non acquitté).
+- **Overflow `pendingEvents`** : si la file dépasse la capacité (match complet hors-ligne), réémission de **l'historique complet** par lots à la reconnexion — l'idempotence backend (`matchId:sequence` unique) rend la réémission sans risque. Aucun point n'est jamais perdu.
+- Survit à : fermeture app, redémarrage app, redémarrage montre.
 
 ---
 
@@ -412,7 +416,7 @@ Reportée (D10). Si activée plus tard : app React Native + TypeScript recevant 
 | Undo SET_FINISHED | UNDO après fin auto | set repris, sets recalculés |
 | Undo SET_CHANGED | UNDO après changement confirmé | retour au set précédent |
 | Fin de match | sets 2-0 | MATCH_FINISHED, UNDO inopérant |
-| Persistance | save → new engine → restore | état identique (replay) |
+| Persistance | save → new engine → restore | état identique (état dérivé + événements, clés multiples < 8 Ko) |
 | Événements | chaque mutation | id unique, séquence sans trou, previous/new cohérents |
 
 ### 15.2 Checklist matérielle (à cocher sur le matériel possédé)
