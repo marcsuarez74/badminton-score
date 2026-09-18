@@ -251,6 +251,58 @@ function test_engine_manual_set_change_tie_not_credited(logger as Logger) as Boo
     return true;
 }
 
+// ---- ScoreEngine : UNDO (spec §4.5/D7, §15.1) ----
+
+(:test)
+function test_engine_undo_simple(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    e.pointMe();
+    e.undo();
+    Test.assertEqualMessage(0, e.getScoreMe(), "undo simple : retour 0-0");
+    Test.assertEqualMessage(0, e.getScoreOpp(), "undo simple : retour 0-0");
+    Test.assertEqualMessage(0, e.getPhase(), "undo simple : PLAYING");
+    Test.assertEqualMessage(0, e.getEvents().size(), "journal vide apres undo");
+    return true;
+}
+
+(:test)
+function test_engine_undo_multi(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 2, 1);
+    Test.assertEqualMessage(2, e.getScoreMe(), "2-1 avant undo");
+    e.undo();
+    e.undo();
+    e.undo();
+    Test.assertEqualMessage(0, e.getScoreMe(), "undo x3 : 0-0");
+    Test.assertEqualMessage(0, e.getScoreOpp(), "undo x3 : pas de negatif");
+    Test.assertEqualMessage(0, e.getEvents().size(), "journal vide");
+    return true;
+}
+
+(:test)
+function test_engine_undo_empty(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    e.undo();   // journal vide : sans effet
+    Test.assertEqualMessage(0, e.getScoreMe(), "undo vide : 0-0");
+    Test.assertEqualMessage(0, e.getEvents().size(), "undo vide : journal intact");
+    Test.assertEqualMessage(1, e.getSetNumber(), "undo vide : set 1");
+    return true;
+}
+
+(:test)
+function test_engine_undo_match_finished_refused(logger as Logger) as Boolean {
+    var e = new ScoreEngine(MatchPresets.get(2));
+    enginePoints(e, 21, 0);
+    e.changeSet();
+    enginePoints(e, 21, 0);
+    Test.assertEqualMessage(2, e.getPhase(), "MATCH_FINISHED");
+    var count = e.getEvents().size();
+    e.undo();   // D7 : MATCH_FINISHED ne s'annule jamais
+    Test.assertEqualMessage(count, e.getEvents().size(), "undo refuse sur match fini");
+    Test.assertEqualMessage(2, e.getPhase(), "toujours MATCH_FINISHED");
+    return true;
+}
+
 (:test)
 function test_engine_match_locked(logger as Logger) as Boolean {
     var e = new ScoreEngine(MatchPresets.get(2));

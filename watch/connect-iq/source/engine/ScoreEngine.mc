@@ -60,6 +60,17 @@ class ScoreEngine {
         replay();
     }
 
+    // UNDO (§4.5/D7) : retire le dernier événement du journal (quel qu'il
+    // soit) puis rejoue. MATCH_FINISHED ne s'annule jamais (verrou) ;
+    // journal vide → sans effet. slice() plutôt que remove() (par valeur).
+    function undo() as Void {
+        if (mEvents.size() == 0) { return; }
+        var last = mEvents[mEvents.size() - 1];
+        if (last[0] == ScoreEvent.TYPE_MATCH_FINISHED) { return; }
+        mEvents = mEvents.slice(0, mEvents.size() - 1);
+        replay();
+    }
+
     // ---- journal + replay ----
 
     function appendEvent(e) as Void {
