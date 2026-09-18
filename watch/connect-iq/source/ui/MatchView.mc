@@ -72,11 +72,16 @@ class MatchView extends WatchUi.View {
             return true;
         }
         if (mScreen == MatchScreen.MENU) {
-            mMenuIndex = (mMenuIndex + 1) % 2;   // liste de 2 : UP et DOWN cyclent
+            mMenuIndex = (mMenuIndex + 3) % 4;   // UP : recule dans la liste de 4
             WatchUi.requestUpdate();
             return true;
         }
-        return true;   // UNDO = Phase 2, UP sans effet en SCORE
+        if (mScreen == MatchScreen.SCORE) {
+            mEngine.undo();              // UP = UNDO (§3.2/D7)
+            syncScreen();                // peut revenir à SET_RESULT (undo SET_CHANGED)
+            return true;
+        }
+        return true;
     }
 
     function onDown() as Boolean {
@@ -107,7 +112,7 @@ class MatchView extends WatchUi.View {
             return true;
         }
         if (mScreen == MatchScreen.MENU) {
-            mMenuIndex = (mMenuIndex + 1) % 2;
+            mMenuIndex = (mMenuIndex + 1) % 4;
             WatchUi.requestUpdate();
             return true;
         }
@@ -152,12 +157,21 @@ class MatchView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
+    // Menu inline §5 : Reprendre / Changer de format / Réinitialiser / Quitter.
+    // (Labels compacts « FORMAT »/« RESET » : écrans ronds, leçon Phase 1.)
     function menuSelect() as Boolean {
-        if (mMenuIndex == 1) {
-            System.exit();
-        } else {
-            mScreen = MatchScreen.SCORE;   // Reprendre
+        if (mMenuIndex == 0) {
+            mScreen = MatchScreen.SCORE;      // Reprendre
             WatchUi.requestUpdate();
+        } else if (mMenuIndex == 1) {
+            mScreen = MatchScreen.SETUP;      // Changer de format (START = nouveau match)
+            WatchUi.requestUpdate();
+        } else if (mMenuIndex == 2) {
+            mEngine.newMatch(mEngine.getConfig(), genMatchId());   // Réinitialiser
+            mScreen = MatchScreen.SCORE;
+            WatchUi.requestUpdate();
+        } else {
+            System.exit();                    // Quitter — dernier bloc, rien après
         }
         return true;
     }
@@ -285,14 +299,21 @@ class MatchView extends WatchUi.View {
     }
 
     function drawMenu(dc as Dc, w as Number, h as Number) as Void {
+        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fMedium = dc.getFontHeight(Graphics.FONT_MEDIUM);
         dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "MENU", Graphics.TEXT_JUSTIFY_CENTER);
-        var items = ["REPRENDRE", "QUITTER"];
-        var y = h / 2 - fMedium;
+        var items = ["REPRENDRE", "FORMAT", "RESET", "QUITTER"];
+        var titleBottom = h / 8 + fSmall;
+        var zone = h - titleBottom;                 // pas de footer sur le menu
+        var spacing = 5 * fMedium / 4;
+        if (spacing * 3 + fMedium > zone) {
+            spacing = (zone - fMedium) / 3;         // compression (fr55)
+        }
+        var y = titleBottom + (zone - (spacing * 3 + fMedium)) / 2;
         for (var i = 0; i < items.size(); i += 1) {
             var marker = (i == mMenuIndex) ? "> " : "  ";
             dc.drawText(w / 2, y, Graphics.FONT_MEDIUM, marker + items[i], Graphics.TEXT_JUSTIFY_CENTER);
-            y += 3 * fMedium / 2;
+            y += spacing;
         }
     }
 }
