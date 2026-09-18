@@ -80,9 +80,9 @@ class MatchView extends WatchUi.View {
             WatchUi.requestUpdate();
             return true;
         }
-        if (mScreen == MatchScreen.SCORE) {
-            mEngine.undo();              // UP = UNDO (§3.2/D7)
-            syncScreen();                // peut revenir à SET_RESULT (undo SET_CHANGED)
+        if (mScreen == MatchScreen.SCORE || mScreen == MatchScreen.SET_RESULT) {
+            mEngine.undo();              // UP = UNDO (§3.2/D7) — depuis SCORE et SET_RESULT
+            syncScreen();                // set repris → SCORE ; undo SET_CHANGED → SET_RESULT
             return true;
         }
         return true;
