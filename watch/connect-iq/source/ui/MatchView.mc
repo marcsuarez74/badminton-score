@@ -231,11 +231,16 @@ class MatchView extends WatchUi.View {
     }
 
     function drawConfirmSet(dc as Dc, w as Number, h as Number) as Void {
+        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
         var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
         dc.drawText(w / 2, h / 4, Graphics.FONT_SMALL, "TERMINER SET " + mEngine.getSetNumber() + " ?", Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
             mEngine.getScoreMe() + " - " + mEngine.getScoreOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        drawFooter(dc, w, h, "DOWN=OUI  BACK=NON");
+        // Aide sur 2 lignes : le texte complet dépasse la corde du cercle
+        // même en FONT_TINY (mesures Task 6). 2 lignes courtes tiennent.
+        var y2 = h * 7 / 8 - fSmall;
+        dc.drawText(w / 2, y2, Graphics.FONT_SMALL, "BACK = NON", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, y2 - fSmall, Graphics.FONT_SMALL, "DOWN = OUI", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawSetResult(dc as Dc, w as Number, h as Number) as Void {
