@@ -5,23 +5,17 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.WatchUi;
 
-// POC Phase 4a : 1 bouton = 1 POST vers l'Edge Function sync. Le code
-// d'affichage du responseCode est la sortie du test (cf. spec sync §15).
+// POC Phase 4a : 1 bouton = 1 POST vers l'Edge Function sync.
 const BACKEND_URL = "https://bzdbnptnubkkagmmxhyi.supabase.co/functions/v1/sync";
 
-class SyncTestDelegate extends WatchUi.BehaviorDelegate {
+class SyncTestView extends WatchUi.View {
     hidden var mResult = "SELECT = POST";
 
     function initialize() {
-        BehaviorDelegate.initialize();
+        View.initialize();
     }
 
-    function onSelect() as Boolean {
-        _send();
-        return true;
-    }
-
-    hidden function _send() as Void {
+    function send() as Void {
         var body = {
             "deviceId" => "poc-device",
             "config" => { "targetScore" => 11, "winBy" => 2, "cap" => 0, "setsToWin" => 2 },
@@ -35,11 +29,11 @@ class SyncTestDelegate extends WatchUi.BehaviorDelegate {
             "responseType" => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
         mResult = "envoi...";
-        Communications.makeWebRequest(BACKEND_URL + "/matches/POCTEST1/events", body, options, method(:_onResponse));
         WatchUi.requestUpdate();
+        Communications.makeWebRequest(BACKEND_URL + "/matches/POCTEST1/events", body, options, method(:onResponse));
     }
 
-    hidden function _onResponse(responseCode as Number, data as Dictionary or String or Null) as Void {
+    hidden function onResponse(responseCode as Number, data as Dictionary or String or Null) as Void {
         if (responseCode == 200 && data != null && data instanceof Dictionary) {
             mResult = "HTTP 200 las=" + data["lastAcceptedSequence"];
         } else {
@@ -49,29 +43,34 @@ class SyncTestDelegate extends WatchUi.BehaviorDelegate {
         WatchUi.requestUpdate();
     }
 
-    // BACK = sortie (prototype).
-    function onBack() as Boolean {
+    function exitRequested() as Void {
         System.exit();
-    }
-}
-
-class SyncTestView extends WatchUi.View {
-    hidden var mDelegate;
-
-    function initialize() {
-        View.initialize();
-        mDelegate = new SyncTestDelegate();
-    }
-
-    function getDelegate() as WatchUi.InputDelegate or Null {
-        return mDelegate;
     }
 
     function onUpdate(dc as Dc) as Void {
         dc.clear();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.drawText(dc.getWidth() / 2, dc.getHeight() / 4, Graphics.FONT_MEDIUM, "SYNC POC", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2, Graphics.FONT_SMALL, mDelegate.mResult, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2, Graphics.FONT_SMALL, mResult, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+}
+
+class SyncTestDelegate extends WatchUi.BehaviorDelegate {
+    hidden var mView;
+
+    function initialize(view) {
+        BehaviorDelegate.initialize();
+        mView = view;
+    }
+
+    function onSelect() as Boolean {
+        mView.send();
+        return true;
+    }
+
+    function onBack() as Boolean {
+        mView.exitRequested();
+        return true;
     }
 }
 
@@ -79,12 +78,9 @@ class SyncTestApp extends Application.AppBase {
     function initialize() {
         AppBase.initialize();
     }
+
     function getInitialView() {
         var view = new SyncTestView();
-        return [view, view.getDelegate()];
+        return [view, new SyncTestDelegate(view)];
     }
-}
-
-function getApp() as Application.AppBase {
-    return new SyncTestApp();
 }
