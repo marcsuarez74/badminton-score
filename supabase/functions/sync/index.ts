@@ -1,29 +1,57 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { handleSync, type Db } from "./handler.ts";
 
-// Les Edge Functions reçoivent automatiquement SUPABASE_URL et
-// SUPABASE_SERVICE_ROLE_KEY (https://supabase.com/docs/guides/functions).
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "method" }), {
-      status: 405, headers: { "Content-Type": "application/json" },
-    });
-  }
-  const text = await req.text();
-  let body: unknown;
-  try { body = JSON.parse(text); } catch { body = { raw: text.slice(0, 2048) }; }
-  const { data, error } = await supabase
-    .from("poc_events").insert({ payload: body }).select("id").single();
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500, headers: { "Content-Type": "application/json" },
-    });
-  }
-  return new Response(JSON.stringify({ ok: true, id: data.id, lastAcceptedSequence: data.id }), {
-    status: 200, headers: { "Content-Type": "application/json" },
-  });
-});
+const db: Db = {
+  async getDeviceHash() {
+    const { data, error } = await supabase.from("devices").select("device_key_hash").eq("id", 1).maybeSingle();
+    return { hash: (data as { device_key_hash?: string } | null)?.device_key_hash ?? null, error: error ? error.message : null };
+  },
+  async getMatchDevice(matchId) {
+    const { data, error } = await supabase.from("matches").select("device_id").eq("match_id", matchId).maybeSingle();
+    return { deviceId: (data as { device_id?: string } | null)?.device_id ?? null, error: error ? error.message : null };
+  },
+  async upsertMatch(matchId, deviceId, config, startedAt, status) {
+    const { error } = await supabase.from("matches").upsert(
+      { match_id: matchId, device_id: deviceId, config, started_at: startedAt, status },
+      { onConflict: "match_id" },
+    );
+    return { error: error ? error.message : null };
+  },
+  async upsertEvents(matchId, events) {
+    const rows = events.map((e) => ({
+      id: `${matchId}:${e.sequence}`,
+      match_id: matchId,
+      sequence: e.sequence,
+      type: e.type,
+      arg: e.arg ?? 0,
+      prev_me: e.prevMe ?? null,
+      prev_opp: e.prevOpp ?? null,
+      ts: e.ts ?? null,
+    }));
+    // Idempotence : doublons ignorés (UNIQUE (match_id, sequence), spec sync §7).
+    const { error } = await supabase.from("events")
+      .upsert(rows, { onConflict: "match_id,sequence", ignoreDuplicates: true });
+    return { error: error ? error.message : null };
+  },
+  async upsertState(matchId, snapshot, config) {
+    const { error } = await supabase.from("match_state").upsert({
+      match_id: matchId,
+      status: snapshot.status,
+      current_set: snapshot.currentSet,
+      score_me: snapshot.scoreMe,
+      score_opp: snapshot.scoreOpp,
+      sets_me: snapshot.setsMe,
+      sets_opp: snapshot.setsOpp,
+      last_sequence: snapshot.lastSequence,
+      config,
+    }, { onConflict: "match_id" });
+    return { error: error ? error.message : null };
+  },
+};
+
+Deno.serve((req: Request) => handleSync(req, db));
