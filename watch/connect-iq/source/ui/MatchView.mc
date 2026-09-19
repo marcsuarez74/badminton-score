@@ -482,9 +482,9 @@ class MatchView extends WatchUi.View {
     // (h/6 → 5h/6). Largeur des lignes = corde du cercle aux bords extérieurs
     // des lignes extrêmes (haut de la 1re, bas de la dernière), marge h/80 :
     // sur rond, une ligne pleine largeur déborde du cadre en haut et en bas.
-    // Ligne sélectionnée : surlignage C_BANNER, label et badge en vert ;
-    // autres lignes : fond absent, label C_GREY, badge contour C_SEP / texte
-    // C_DIM. Badge = anneau 2px (fill extérieur + fill intérieur noir) —
+    // Ligne sélectionnée : SANS fond — pilule d'accent verte à gauche, label
+    // et badge en vert ; autres lignes : label C_GREY, badge contour C_SEP /
+    // texte C_DIM. Badge = anneau 2px (fill extérieur + fill intérieur noir) —
     // anneau plus visible que le simple contour 1px de drawRoundedRectangle.
     function drawMenu(dc as Dc, w as Number, h as Number) as Void {
         var items = ["RESUME", "FORMAT", "RESET", "QUITTER"];
@@ -521,23 +521,27 @@ class MatchView extends WatchUi.View {
         var inset = h / 80;
         var rowLeft = r - hc + inset;
         var rowRight = r + hc - inset;
-        var labelGap = 8;
+        var labelGap = 6;
+        var accentW = 4;                     // pilule d'accent de la ligne sélectionnée
+        var accentGap = 4;
         for (var i = 0; i < items.size(); i += 1) {
             var sel = (i == mMenuIndex);
+            // colonnes alignées : l'accent réserve sa place sur toutes les lignes
+            var contentX = rowLeft + accentW + accentGap;
             if (sel) {
-                dc.setColor(C_BANNER, Graphics.COLOR_TRANSPARENT);
-                dc.fillRoundedRectangle(rowLeft, y, rowRight - rowLeft, rowH, radius);
+                dc.setColor(C_ME, Graphics.COLOR_TRANSPARENT);
+                dc.fillRoundedRectangle(rowLeft, y + (rowH - fItem) / 2, accentW, fItem, accentW / 2);
             }
             // badge touche
             var by = y + (rowH - badgeH) / 2;
             dc.setColor(sel ? C_ME : C_SEP, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(rowLeft, by, badgeW, badgeH, radius);
+            dc.fillRoundedRectangle(contentX, by, badgeW, badgeH, radius);
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(rowLeft + 2, by + 2, badgeW - 4, badgeH - 4, radius > 2 ? radius - 2 : 1);
+            dc.fillRoundedRectangle(contentX + 2, by + 2, badgeW - 4, badgeH - 4, radius > 2 ? radius - 2 : 1);
             dc.setColor(sel ? C_ME : C_DIM, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(rowLeft + badgeW / 2, by + (badgeH - fBadge) / 2, Graphics.FONT_XTINY, "START", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(contentX + badgeW / 2, by + (badgeH - fBadge) / 2, Graphics.FONT_XTINY, "START", Graphics.TEXT_JUSTIFY_CENTER);
             // label (repli TINY si la corde manque, puis recul sans passer sous le badge)
-            var labelX = rowLeft + badgeW + labelGap;
+            var labelX = contentX + badgeW + labelGap;
             var labelFont = itemFont;
             var labelW = dc.getTextWidthInPixels(items[i], labelFont);
             if (labelX + labelW > rowRight) {
