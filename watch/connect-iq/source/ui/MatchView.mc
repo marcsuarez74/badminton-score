@@ -15,6 +15,14 @@ module MatchScreen {
 
 class MatchView extends WatchUi.View {
 
+    // Direction B « Garmin natif » (docs/superpowers/notes/design-b-garmin-natif.html).
+    const C_ME = 0x2FE05C;          // vert Garmin — MOI
+    const C_GREY = 0x8B939B;        // labels secondaires — LUI, SET, SETS
+    const C_DIM = 0x5B6167;         // aides, pastilles vides
+    const C_SEP = 0x2A2E32;         // barre séparatrice, badge neutre
+    const C_BANNER = 0x123421;      // bandeau set/match gagné
+    const C_BANNER_LOSS = 0x2A1111; // bandeau défaite
+
     var mScreen = MatchScreen.SETUP;
     var mSetupIndex = 2;      // 21 POINTS par défaut
     var mMenuIndex = 0;
@@ -258,13 +266,69 @@ class MatchView extends WatchUi.View {
         }
     }
 
-    // Position de la sous-ligne sous le gros score : jamais sous le footer.
-    // (min entre la position naturelle h/2+fLarge et le haut du footer —
-    // sinon chevauchement sur les petits écrans, constaté instinct2/fr55.)
-    function subLineY(h as Number, fLarge as Number, fSmall as Number) as Number {
-        var footerTop = h * 7 / 8 - fSmall;
-        var y = h / 2 + fLarge;
-        return (y > footerTop - fSmall) ? footerTop - fSmall : y;
+    // Gros chiffres (échelle par hauteur) : NUMBER_HOT sur les grands AMOLED,
+    // NUMBER_MEDIUM en dessous. (FONT_NUMBER_LARGE du gabarit n'existe pas dans
+    // l'API — palier intermédiaire et palier bas fusionnés sur NUMBER_MEDIUM,
+    // conformément à l'annotation fr55 de la spec.)
+    function bigFont(h as Number) {
+        return (h >= 380) ? Graphics.FONT_NUMBER_HOT : Graphics.FONT_NUMBER_MEDIUM;
+    }
+
+    // Labels (MOI/LUI, SET, SETS) : SMALL sur les grands écrans, TINY sinon.
+    function labelFont(h as Number) {
+        return (h >= 380) ? Graphics.FONT_SMALL : Graphics.FONT_TINY;
+    }
+
+    // Plus grande police NUMBER dont la hauteur tient dans l'espace disponible.
+    function fittedBigFont(dc as Dc, avail as Number) {
+        if (dc.getFontHeight(Graphics.FONT_NUMBER_HOT) <= avail) { return Graphics.FONT_NUMBER_HOT; }
+        if (dc.getFontHeight(Graphics.FONT_NUMBER_MEDIUM) <= avail) { return Graphics.FONT_NUMBER_MEDIUM; }
+        return Graphics.FONT_NUMBER_MILD;
+    }
+
+    // Bandeau supérieur plein (coins rognés par le masque rond — voulu) avec
+    // texte blanc centré verticalement ; police adaptée à la corde du cercle
+    // (comparaison entière sur la demi-corde au carré, pas de flottants).
+    function drawBanner(dc as Dc, w as Number, h as Number, text as String, color as Number) as Void {
+        var bannerH = h * 3 / 10;
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(0, 0, w, bannerH);
+        var r = h / 2;
+        var dy = r - bannerH / 2;
+        var halfChord2 = r * r - dy * dy;
+        var margin = h / 40;
+        var font = Graphics.FONT_MEDIUM;
+        var halfW = dc.getTextWidthInPixels(text, font) / 2 + margin;
+        if (halfW * halfW > halfChord2) {
+            font = Graphics.FONT_SMALL;
+            halfW = dc.getTextWidthInPixels(text, font) / 2 + margin;
+        }
+        if (halfW * halfW > halfChord2) {
+            font = Graphics.FONT_TINY;   // repli : léger rognage possible au bas du badge
+        }
+        var fT = dc.getFontHeight(font);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, bannerH / 2 - fT / 2, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // Layout commun des écrans à bandeau (SET_RESULT / MATCH_FINISHED) : gros
+    // score centré entre le bandeau et la sous-ligne, sous-ligne au-dessus du
+    // footer. Retourne [bigFont, bigTop, subTop] — layout du bas vers le haut
+    // (les polices NUMBER dépassent la chaîne spec « chiffres à h/2 + subLineY »
+    // sur tous les profils : collision prouvée par mesures de polices).
+    function bannerBigLayout(dc as Dc, h as Number, footerText as String) as Array {
+        var gap = h / 60;
+        var fSub = dc.getFontHeight(labelFont(h));
+        var fFooter = dc.getFontHeight(Graphics.FONT_SMALL);
+        if (dc.getTextWidthInPixels(footerText, Graphics.FONT_SMALL) > dc.getWidth() * 2 / 3) {
+            fFooter = dc.getFontHeight(Graphics.FONT_TINY);
+        }
+        var subTop = h * 7 / 8 - fFooter - gap - fSub;
+        var bannerBottom = h * 3 / 10;
+        var avail = subTop - gap - bannerBottom - gap;
+        var big = fittedBigFont(dc, avail);
+        var fBig = dc.getFontHeight(big);
+        return [big, bannerBottom + (avail - fBig) / 2, subTop];
     }
 
     function drawSetup(dc as Dc, w as Number, h as Number) as Void {
@@ -282,23 +346,94 @@ class MatchView extends WatchUi.View {
         var y = titleBottom + (zone - (spacing * 2 + fMedium)) / 2;
         for (var i = 0; i < MatchPresets.count(); i += 1) {
             var marker = (i == mSetupIndex) ? "> " : "  ";
+            dc.setColor((i == mSetupIndex) ? C_ME : C_GREY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(w / 2, y, Graphics.FONT_MEDIUM, marker + MatchPresets.label(i), Graphics.TEXT_JUSTIFY_CENTER);
             y += spacing;
         }
         drawFooter(dc, w, h, "START = OK");
     }
 
+    // Direction B : label SET, DEUX gros chiffres séparés par une barre (pas de
+    // « - » texte), MOI/LUI centrés sous chaque chiffre, pastilles de sets,
+    // footer = preset seul. Layout vertical calculé du bas vers le haut (footer
+    // → pastilles → labels → chiffres → header) : avec les polices NUMBER, la
+    // chaîne spec « chiffres à h/2 + subLineY » se chevauche sur tous les
+    // profils (mesures : epix NUM_HOT 160 px, fr55 NUM_MEDIUM 79 px) — la
+    // remontée depuis le footer garantit zéro collision dans le cercle.
     function drawScore(dc as Dc, w as Number, h as Number) as Void {
-        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
-        var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
-        dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "SET " + mEngine.getSetNumber(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
-            mEngine.getScoreMe() + " - " + mEngine.getScoreOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        var ySub = subLineY(h, fLarge, fSmall);
-        dc.drawText(w / 4, ySub, Graphics.FONT_SMALL, "MOI", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(3 * w / 4, ySub, Graphics.FONT_SMALL, "LUI", Graphics.TEXT_JUSTIFY_CENTER);
-        drawFooter(dc, w, h,
-            MatchPresets.shortLabel(mMatchPresetIndex) + "  SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp());
+        var big = bigFont(h);
+        var fBig = dc.getFontHeight(big);
+        var fLab = dc.getFontHeight(labelFont(h));
+        var gap = h / 60;
+
+        // Bas de page : footer + pastilles (hauteur du footer dupliquée de
+        // drawFooter, qui choisit SMALL/TINY selon la largeur).
+        var footerText = MatchPresets.shortLabel(mMatchPresetIndex);
+        var fFooter = dc.getFontHeight(Graphics.FONT_SMALL);
+        if (dc.getTextWidthInPixels(footerText, Graphics.FONT_SMALL) > w * 2 / 3) {
+            fFooter = dc.getFontHeight(Graphics.FONT_TINY);
+        }
+        var footerTop = h * 7 / 8 - fFooter;
+        var r = h / 90;
+        if (r < 3) { r = 3; }
+        var dotsCenter = footerTop - gap - r;
+
+        // Labels MOI/LUI sous les chiffres.
+        var labelsTop = dotsCenter - r - gap - fLab;
+
+        // Gros chiffres + barre séparatrice (hauteur 62 % de la police).
+        var sMe = mEngine.getScoreMe() + "";
+        var sOpp = mEngine.getScoreOpp() + "";
+        var wMe = dc.getTextWidthInPixels(sMe, big);
+        var wOpp = dc.getTextWidthInPixels(sOpp, big);
+        var sepW = h / 130;
+        if (sepW < 2) { sepW = 2; }
+        var sepH = fBig * 62 / 100;
+        var digitsGap = h / 45;
+        var total = wMe + digitsGap + sepW + digitsGap + wOpp;
+        var startX = (w - total) / 2;
+        var digitsTop = labelsTop - gap - fBig;
+
+        // Header remonté au-dessus des chiffres.
+        var headTop = digitsTop - gap - fLab;
+
+        dc.setColor(C_GREY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, headTop, labelFont(h), "SET " + mEngine.getSetNumber(), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(C_ME, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(startX, digitsTop, big, sMe, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(C_SEP, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(startX + wMe + digitsGap, digitsTop + (fBig - sepH) / 2, sepW, sepH);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(startX + wMe + digitsGap + sepW + digitsGap, digitsTop, big, sOpp, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(C_ME, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(startX + wMe / 2, labelsTop, labelFont(h), "MOI", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(C_GREY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(startX + wMe + digitsGap + sepW + digitsGap + wOpp / 2, labelsTop, labelFont(h), "LUI", Graphics.TEXT_JUSTIFY_CENTER);
+        drawSetDots(dc, w, dotsCenter, r);
+        drawFooter(dc, w, h, footerText);
+    }
+
+    // Pastilles de sets : mes sets à gauche (PLEIN C_ME si gagné, creux C_DIM
+    // sinon), gap central de rayon×2, les siennes à droite (PLEIN/creux C_DIM).
+    // y = centre de la rangée ; rangée centrée horizontalement.
+    function drawSetDots(dc as Dc, w as Number, y as Number, r as Number) as Void {
+        var setsToWin = mEngine.getConfig().mSetsToWin;
+        var d = 2 * r;
+        var total = 2 * setsToWin * d + d;
+        var x = (w - total) / 2;
+        var setsMe = mEngine.getSetsMe();
+        for (var i = 0; i < setsToWin; i += 1) {
+            dc.setColor((i < setsMe) ? C_ME : C_DIM, Graphics.COLOR_TRANSPARENT);
+            if (i < setsMe) { dc.fillCircle(x + r, y, r); } else { dc.drawCircle(x + r, y, r); }
+            x += d;
+        }
+        x += d;
+        var setsOpp = mEngine.getSetsOpp();
+        for (var j = 0; j < setsToWin; j += 1) {
+            dc.setColor(C_DIM, Graphics.COLOR_TRANSPARENT);
+            if (j < setsOpp) { dc.fillCircle(x + r, y, r); } else { dc.drawCircle(x + r, y, r); }
+            x += d;
+        }
     }
 
     function drawConfirmSet(dc as Dc, w as Number, h as Number) as Void {
@@ -310,53 +445,87 @@ class MatchView extends WatchUi.View {
         // Aide sur 2 lignes : le texte complet dépasse la corde du cercle
         // même en FONT_TINY (mesures Task 6). 2 lignes courtes tiennent.
         var y2 = h * 7 / 8 - fSmall;
+        dc.setColor(C_GREY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, y2, Graphics.FONT_SMALL, "BACK = NON", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(C_ME, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, y2 - fSmall, Graphics.FONT_SMALL, "DOWN = OUI", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawSetResult(dc as Dc, w as Number, h as Number) as Void {
-        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
-        var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
-        dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "SET " + mEngine.getSetNumber() + " TERMINE", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
+        var footerText = "DOWN = SET SUIV.";
+        drawBanner(dc, w, h, "SET " + mEngine.getSetNumber() + " TERMINE", C_BANNER);
+        var layout = bannerBigLayout(dc, h, footerText);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, layout[1], layout[0],
             mEngine.getLastSetScoreMe() + " - " + mEngine.getLastSetScoreOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, subLineY(h, fLarge, fSmall), Graphics.FONT_SMALL,
+        dc.setColor(C_GREY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, layout[2], labelFont(h),
             "SETS " + mEngine.getSetsMe() + "-" + mEngine.getSetsOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        drawFooter(dc, w, h, "DOWN = SET SUIV.");
+        drawFooter(dc, w, h, footerText);
     }
 
     function drawMatchFinished(dc as Dc, w as Number, h as Number) as Void {
-        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
-        var fLarge = dc.getFontHeight(Graphics.FONT_LARGE);
-        dc.drawText(w / 2, h / 4, Graphics.FONT_SMALL, "MATCH TERMINE", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, h / 2 - fLarge / 2, Graphics.FONT_LARGE,
+        var footerText = "DOWN = NOUVEAU";
+        var won = mEngine.getSetsMe() > mEngine.getSetsOpp();
+        drawBanner(dc, w, h, "MATCH TERMINE", won ? C_BANNER : C_BANNER_LOSS);
+        var layout = bannerBigLayout(dc, h, footerText);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, layout[1], layout[0],
             mEngine.getSetsMe() + " - " + mEngine.getSetsOpp(), Graphics.TEXT_JUSTIFY_CENTER);
-        var winner = (mEngine.getSetsMe() > mEngine.getSetsOpp()) ? "MOI GAGNE" : "LUI GAGNE";
-        dc.drawText(w / 2, subLineY(h, fLarge, fSmall), Graphics.FONT_SMALL, winner, Graphics.TEXT_JUSTIFY_CENTER);
-        drawFooter(dc, w, h, "DOWN = NOUVEAU");
+        dc.setColor(won ? C_ME : C_GREY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, layout[2], labelFont(h), won ? "MOI GAGNE" : "LUI GAGNE", Graphics.TEXT_JUSTIFY_CENTER);
+        drawFooter(dc, w, h, footerText);
     }
 
+    // Direction B : PAS de titre — 4 lignes badge+label occupant le cercle
+    // (bande h/8 → 7h/8). Ligne sélectionnée : surlignage pleine largeur
+    // C_BANNER, label et badge en vert ; autres lignes : fond absent, label
+    // C_GREY, badge contour C_SEP / texte C_DIM. Badge = double fillRoundedRectangle
+    // (pas de strokeRoundRect dans l'API).
     function drawMenu(dc as Dc, w as Number, h as Number) as Void {
-        var fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
-        var fMedium = dc.getFontHeight(Graphics.FONT_MEDIUM);
-        dc.drawText(w / 2, h / 8, Graphics.FONT_SMALL, "MENU", Graphics.TEXT_JUSTIFY_CENTER);
         var items = ["REPRENDRE", "FORMAT", "RESET", "QUITTER"];
-        var titleBottom = h / 8 + fSmall;
-        var bottomLimit = h * 7 / 8;          // leçon Phase 1 : bas de texte ≤ 7h/8 sur écran rond
-        var zone = bottomLimit - titleBottom;
         // Petits écrans (rond 208 / semi-octogone 176) : items en SMALL —
         // 4 items MEDIUM débordent de la corde du bas (fr55 : 153px vs corde 140).
         var itemFont = (h < 300) ? Graphics.FONT_SMALL : Graphics.FONT_MEDIUM;
-        var fItem = (h < 300) ? fSmall : fMedium;
-        var spacing = 5 * fItem / 4;
-        if (spacing * 3 + fItem > zone) {
-            spacing = (zone - fItem) / 3;
+        var fItem = dc.getFontHeight(itemFont);
+        var fTiny = dc.getFontHeight(Graphics.FONT_TINY);
+        var radius = h / 40;
+        var padX = w / 12;
+        var bp = h / 60;                     // padding interne du badge
+        var badgeW = dc.getTextWidthInPixels("START", Graphics.FONT_TINY) + 2 * bp;
+        var badgeH = fTiny + 2 * bp;
+        var vp = h / 60;                     // padding vertical de ligne
+        var rowH = (badgeH > fItem ? badgeH : fItem) + 2 * vp;
+        var topLimit = h / 8;
+        var bottomLimit = h * 7 / 8;         // leçon Phase 1 : bas de texte ≤ 7h/8 sur rond
+        var zone = bottomLimit - topLimit;
+        var spacing = rowH + h / 30;
+        if (spacing * 3 + rowH > zone) {
+            spacing = (zone - rowH) / 3;     // compression (fr55)
             if (spacing < 1) { spacing = 1; }
         }
-        var y = titleBottom + (zone - (spacing * 3 + fItem)) / 2;
+        var y = topLimit + (zone - (spacing * 3 + rowH)) / 2;
+        var labelGap = h / 40;
         for (var i = 0; i < items.size(); i += 1) {
-            var marker = (i == mMenuIndex) ? "> " : "  ";
-            dc.drawText(w / 2, y, itemFont, marker + items[i], Graphics.TEXT_JUSTIFY_CENTER);
+            var sel = (i == mMenuIndex);
+            if (sel) {
+                dc.setColor(C_BANNER, Graphics.COLOR_TRANSPARENT);
+                dc.fillRoundedRectangle(padX, y, w - 2 * padX, rowH, radius);
+            }
+            // badge touche
+            var by = y + (rowH - badgeH) / 2;
+            dc.setColor(sel ? C_ME : C_SEP, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(padX, by, badgeW, badgeH, radius);
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(padX + 2, by + 2, badgeW - 4, badgeH - 4, radius > 2 ? radius - 2 : 1);
+            dc.setColor(sel ? C_ME : C_DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(padX + badgeW / 2, by + (badgeH - fTiny) / 2, Graphics.FONT_TINY, "START", Graphics.TEXT_JUSTIFY_CENTER);
+            // label (recalé à gauche si la largeur manque — REPRENDRE sur fr55)
+            var labelX = padX + badgeW + labelGap;
+            var labelW = dc.getTextWidthInPixels(items[i], itemFont);
+            if (labelX + labelW > w - padX) { labelX = w - padX - labelW; }
+            dc.setColor(sel ? C_ME : C_GREY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(labelX, y + (rowH - fItem) / 2, itemFont, items[i], Graphics.TEXT_JUSTIFY_LEFT);
             y += spacing;
         }
     }
