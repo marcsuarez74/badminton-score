@@ -1,0 +1,17 @@
+<!-- Propriétés + écrans de réglage (Phase 4a, spec sync §4.2/§6).
+     Propriétés déclarées ici (resources.xsd) — PAS dans manifest.xml :
+     le XSD manifest v3 ne les accepte pas (erreur cvc 2.4.a, Task 9). -->
+<resources>
+    <properties>
+        <property id="backendUrl" type="string"/>
+        <property id="deviceKey" type="string"/>
+    </properties>
+    <settings>
+        <setting propertyKey="@Properties.backendUrl" title="Backend URL">
+            <settingConfig type="url" required="false"/>
+        </setting>
+        <setting propertyKey="@Properties.deviceKey" title="Device Key">
+            <settingConfig type="alphaNumeric" required="false"/>
+        </setting>
+    </settings>
+</resources>
