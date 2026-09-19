@@ -192,6 +192,7 @@ Principe conservé [SPEC] : `Score local → Persistence → Pending queue → S
 | Retry / backoff | Erreurs `-2/-101/-102/-104/-300/-402/-403/HTTP ≥ 500` → backoff exponentiel 10 s → 2 min, file jamais vidée sur erreur [SPEC §9.3] |
 | Callback jamais appelé | Timeout applicatif **30 s** → traité comme erreur, réémission (idempotence = sans risque) |
 | Événements déjà envoyés | `sequence ≤ lastAcceptedSequence` → retirés de la file à l'ACK |
+| Undo d'un event déjà envoyé | MVP (D-3) : le backend garde l'event annulé (historique append-only) ; l'overlay reste juste (snapshot = vérité). Rétraction propre (marqueur TYPE_UNDO journalisé côté moteur, séquence monotone) → Phase 7 quand le bot en aura besoin. |
 | Désordre / doublons | DB unique `(match_id, sequence)` + `ignore-duplicates` ; snapshot toujours correct |
 | Reprise après redémarrage | `pf` persisté → flush au lancement [SPEC §9.4] |
 | Match terminé hors ligne | File + snapshot `status=match_finished` persistés → envoyés à la prochaine ouverture de l'app |
@@ -297,7 +298,7 @@ create table events (
   id        text primary key,                 -- "<matchId>:<sequence>" [SPEC §7.1]
   match_id  text not null references matches(match_id),
   sequence  int  not null check (sequence > 0),
-  type      int  not null check (type between 0 and 5),  -- 0=POINT_ME 1=POINT_OPPONENT 2=UNDO(réservé 4a) 3=SET_CHANGED 4=SET_FINISHED 5=MATCH_FINISHED
+  type      int  not null check (type between 0 and 5),  -- 0=POINT_ME 1=POINT_OPPONENT 2=SET_FINISHED 3=SET_CHANGED 4=MATCH_FINISHED 5=UNDO(réservé Phase 7) — mapping ScoreEvent.mc réel
   arg       int  not null default 0,
   prev_me   int, prev_opp int,                -- format plat de la montre [type, arg, seq, ts, prevMe, prevOpp]
   ts        bigint,                           -- timer de la montre (ms)
@@ -450,6 +451,7 @@ Chaque phase : code compilable à chaque commit, petits pas, contraintes Garmin 
 | S11 | Sécurité : device secret en settings CIQ + header `X-Device-Key` + hash en DB ; RLS lecture seule publique (REVOKE→GRANT) | Validée [PROPO] |
 | S12 | Batchs ≤ 5 events, ≥ 5 s, timeout applicatif 30 s, backoff 10 s → 2 min | Validée [SPEC §8-§9 + DOC] |
 | S13 | Fallback si Supabase insuffisant un jour : backend custom derrière la même URL HTTPS — le protocole montre ne change pas | Validée [PROPO] |
+| S14 | Représentation réseau de l'undo (D-3) : reportée Phase 7 — MVP = historique append-only (events fantômes possibles après undo d'un event déjà ACK), le snapshot fait foi ; le marqueur TYPE_UNDO journalisé au moteur sera implémenté avec le bot | Validée (compromis MVP) |
 
 ## 19. Open Questions (à tester sur matériel réel)
 
