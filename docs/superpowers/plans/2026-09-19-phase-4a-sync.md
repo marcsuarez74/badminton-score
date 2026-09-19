@@ -1,6 +1,6 @@
 # Phase 4a — Synchronisation (POC, Supabase, SyncService) — Plan d'implémentation
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Les points joués sur la montre partent par `makeWebRequest` (relais GCM) vers une Edge Function Supabase qui les stocke de façon idempotente et renvoie un ACK `{matchId, lastAcceptedSequence}` — chaîne complète validée en simulateur ET sur l'epix matérielle avec GCM.
 
@@ -56,12 +56,12 @@ supabase link --project-ref bzdbnptnubkkagmmxhyi   # USER : mot de passe DB du p
 - Create: `supabase/config.toml` (via `supabase init`)
 - Modify: `.gitignore`
 
-- [ ] **Step 1: Vérifier les outils** (si déjà fait en prérequis, passer)
+- [x] **Step 1: Vérifier les outils** (si déjà fait en prérequis, passer)
 
 Run: `supabase --version && deno --version`
 Expected: versions affichées. Sinon : `brew install supabase/tap/supabase deno`
 
-- [ ] **Step 2: Init du projet Supabase dans le repo**
+- [x] **Step 2: Init du projet Supabase dans le repo**
 
 Run (workdir racine du repo):
 ```bash
@@ -69,7 +69,7 @@ supabase init
 ```
 Expected: répertoire `supabase/` créé avec `config.toml`. Répondre non aux questions optionnelles (défauts).
 
-- [ ] **Step 3: Configurer la fonction (pas de JWT Supabase — auth custom)**
+- [x] **Step 3: Configurer la fonction (pas de JWT Supabase — auth custom)**
 
 Ajouter à la fin de `supabase/config.toml` :
 ```toml
@@ -77,7 +77,7 @@ Ajouter à la fin de `supabase/config.toml` :
 verify_jwt = false
 ```
 
-- [ ] **Step 4: Gitignore des artefacts locaux**
+- [x] **Step 4: Gitignore des artefacts locaux**
 
 Ajouter à `.gitignore` :
 ```
@@ -87,7 +87,7 @@ supabase/.branches
 .secrets/
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git checkout -b phase-4a
@@ -104,7 +104,7 @@ NB : si la branche existe déjà, juste `git checkout phase-4a`.
 - Create: `supabase/migrations/20260919000001_poc.sql`
 - Create: `supabase/functions/sync/index.ts`
 
-- [ ] **Step 1: Migration POC**
+- [x] **Step 1: Migration POC**
 
 Créer `supabase/migrations/20260919000001_poc.sql` :
 ```sql
@@ -117,7 +117,7 @@ create table poc_events (
 );
 ```
 
-- [ ] **Step 2: Fonction minimale (echo + insert)**
+- [x] **Step 2: Fonction minimale (echo + insert)**
 
 Créer `supabase/functions/sync/index.ts` :
 ```typescript
@@ -151,17 +151,17 @@ Deno.serve(async (req: Request) => {
 });
 ```
 
-- [ ] **Step 3: Appliquer la migration** — **[USER ACTION si mot de passe demandé]**
+- [x] **Step 3: Appliquer la migration** — **[USER ACTION si mot de passe demandé]**
 
 Run: `supabase db push`
 Expected: `20260919000001_poc.sql ... applied` (demander le mot de passe DB au propriétaire si prompt).
 
-- [ ] **Step 4: Déployer la fonction**
+- [x] **Step 4: Déployer la fonction**
 
 Run: `supabase functions deploy sync`
 Expected: `Deployed Functions on project ...: sync`
 
-- [ ] **Step 5: Test curl depuis le Mac**
+- [x] **Step 5: Test curl depuis le Mac**
 
 Run:
 ```bash
@@ -171,7 +171,7 @@ curl -s -X POST "https://bzdbnptnubkkagmmxhyi.supabase.co/functions/v1/sync/matc
 ```
 Expected: `{"ok":true,"id":1}` (ou id croissant) — la ligne existe dans `poc_events` (dashboard Supabase > Table Editor).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add supabase/migrations/20260919000001_poc.sql supabase/functions/sync/index.ts
@@ -187,7 +187,7 @@ git commit -m "feat(4a): POC Edge Function sync (echo+insert poc_events)"
 
 Structure copiée de `prototypes/button-test/` (mêmes conventions : uuid manifest différent, `minApiLevel 3.4.0`, produits ×5, permission Communications **déjà présente** dans button-test).
 
-- [ ] **Step 1: Copier la structure de button-test**
+- [x] **Step 1: Copier la structure de button-test**
 
 ```bash
 cp -R prototypes/button-test prototypes/sync-test
@@ -195,7 +195,7 @@ rm -rf prototypes/sync-test/sideload prototypes/sync-test/bin
 ```
 Garder `monkey.jungle` tel quel ; remplacer `manifest.xml` (id applicatif différent, même permission) et le source.
 
-- [ ] **Step 2: manifest.xml**
+- [x] **Step 2: manifest.xml**
 
 Remplacer `prototypes/sync-test/manifest.xml` :
 ```xml
@@ -219,7 +219,7 @@ Remplacer `prototypes/sync-test/manifest.xml` :
 </iq:manifest>
 ```
 
-- [ ] **Step 3: Source complet**
+- [x] **Step 3: Source complet**
 
 Remplacer le contenu de `prototypes/sync-test/source/` par un seul fichier `SyncTestApp.mc` (supprimer l'ancien `.mc`) :
 ```monkeyc
@@ -316,7 +316,7 @@ function getApp() as Application.AppBase {
 ```
 Note : `mDelegate.mResult` est accessible (champs publics par défaut en Monkey C). Si l'accès direct gêne, ajouter un getter `getResult()` au delegate.
 
-- [ ] **Step 4: Build epix2pro51mm**
+- [x] **Step 4: Build epix2pro51mm**
 
 Run:
 ```bash
@@ -325,7 +325,7 @@ monkeyc -d epix2pro51mm -f prototypes/sync-test/monkey.jungle -o prototypes/sync
 ```
 Expected: 0 erreur, 0 warning nouveau. (Adapter `resources/` si le jungle de button-test référence des drawables copiés — ils le sont par `cp -R`.)
 
-- [ ] **Step 5: Simulateur (réseau du Mac, sans téléphone)**
+- [x] **Step 5: Simulateur (réseau du Mac, sans téléphone)**
 
 ```bash
 pkill -f ConnectIQ 2>/dev/null; sleep 1
@@ -334,7 +334,7 @@ open "$SDK/bin/ConnectIQ.app" && sleep 6
 ```
 Appuyer SELECT dans le simulateur → écran attendu : `HTTP 200 las=<n>`. Vérifier la ligne dans le dashboard (Table Editor > `poc_events`).
 
-- [ ] **Step 6: Matériel epix + GCM — [USER ACTION]**
+- [x] **Step 6: Matériel epix + GCM — [USER ACTION]**
 
 1. Copier le `.prg` dans `prototypes/sync-test/sideload/` puis sur la montre (`/GARMIN/APPS/`).
 2. Sur le téléphone : **Garmin Connect Mobile ouverte** (Android : arrière-plan OK), epix appairée.
@@ -344,7 +344,7 @@ Appuyer SELECT dans le simulateur → écran attendu : `HTTP 200 las=<n>`. Véri
 
 Si `ERR -104`/`-2` : consigner (leçons §3.8 de la spec sync) et re-tester GCM active.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add prototypes/sync-test
@@ -360,7 +360,7 @@ git commit -m "feat(4a): POC montre sync-test — POST makeWebRequest vers Edge 
 - Create: `.secrets/phase-4a.env` (gitigné)
 - Modify: `docs/superpowers/specs/2026-09-19-sync-backend-overlay-twitch-design.md`
 
-- [ ] **Step 1: Générer le device secret + hash (jamais dans git pour la clé brute)**
+- [x] **Step 1: Générer le device secret + hash (jamais dans git pour la clé brute)**
 
 ```bash
 mkdir -p .secrets
@@ -370,7 +370,7 @@ printf 'SUPABASE_URL=https://bzdbnptnubkkagmmxhyi.supabase.co\nDEVICE_KEY=%s\nDE
 ```
 Stocker aussi la clé brute dans le gestionnaire de mots de passe du propriétaire. Vérifier que `.secrets/` est bien ignoré : `git status` ne doit PAS lister `.secrets/`.
 
-- [ ] **Step 2: Migration du schéma complet**
+- [x] **Step 2: Migration du schéma complet**
 
 Créer `supabase/migrations/20260919000002_schema.sql` (remplacer `<DEVICE_HASH>` par la valeur réelle de `$DEVICE_HASH`) :
 ```sql
@@ -438,7 +438,7 @@ drop table if exists poc_events;
 alter publication supabase_realtime add table matches, events, match_state;
 ```
 
-- [ ] **Step 3: Corrections de la spec sync (mapping types réel du moteur + D-3)**
+- [x] **Step 3: Corrections de la spec sync (mapping types réel du moteur + D-3)**
 
 Dans `docs/superpowers/specs/2026-09-19-sync-backend-overlay-twitch-design.md` :
 
@@ -448,12 +448,12 @@ Dans `docs/superpowers/specs/2026-09-19-sync-backend-overlay-twitch-design.md` :
 3. §18, ajouter la décision :
    `| S14 | Représentation réseau de l'undo (D-3) : reportée Phase 7 — MVP = historique append-only (events fantômes possibles après undo d'un event déjà ACK), le snapshot fait foi ; le marqueur TYPE_UNDO journalisé au moteur sera implémenté avec le bot | Validée (compromis MVP) |`
 
-- [ ] **Step 4: Appliquer** — **[USER ACTION si mot de passe demandé]**
+- [x] **Step 4: Appliquer** — **[USER ACTION si mot de passe demandé]**
 
 Run: `supabase db push`
 Expected: migration appliquée.
 
-- [ ] **Step 5: Vérifier la RLS avec la clé anon**
+- [x] **Step 5: Vérifier la RLS avec la clé anon**
 
 ```bash
 source .secrets/phase-4a.env
@@ -469,7 +469,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST "https://bzdbnptnubkkagmmxhyi.s
 ```
 Expected: premier curl → `[]` ; deuxième → code `401`/`403` (pas 201) ; troisième (devices) → code `40x` (4xx — écriture refusée). Si le format de sortie du CLI diffère, récupérer l'anon key dans le dashboard (Settings > API) — **[USER ACTION]**.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add supabase/migrations/20260919000002_schema.sql docs/superpowers/specs/2026-09-19-sync-backend-overlay-twitch-design.md
@@ -485,7 +485,7 @@ git commit -m "feat(4a): schéma complet (matches/events/match_state/devices), R
 - Modify: `supabase/functions/sync/index.ts` (remplace la version POC)
 - Create: `supabase/functions/sync/handler_test.ts`
 
-- [ ] **Step 1: handler.ts (logique pure, Db injectable)**
+- [x] **Step 1: handler.ts (logique pure, Db injectable)**
 
 ```typescript
 // Edge Function sync — logique pure testable (Db injecté). Le backend ne
@@ -585,7 +585,7 @@ export async function handleSync(req: Request, db: Db): Promise<Response> {
 }
 ```
 
-- [ ] **Step 2: index.ts (Db réel + serve)**
+- [x] **Step 2: index.ts (Db réel + serve)**
 
 Remplacer tout `supabase/functions/sync/index.ts` :
 ```typescript
@@ -648,7 +648,7 @@ const db: Db = {
 Deno.serve((req: Request) => handleSync(req, db));
 ```
 
-- [ ] **Step 3: handler_test.ts (Db factice)**
+- [x] **Step 3: handler_test.ts (Db factice)**
 
 ```typescript
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
@@ -744,12 +744,12 @@ Deno.test("403 si le match appartient à un autre device", async () => {
 
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `deno test supabase/functions/sync/handler_test.ts --allow-all`
 Expected: `ok. 8 passed` (tous verts).
 
-- [ ] **Step 5: Deploy + e2e curl avec la vraie device key**
+- [x] **Step 5: Deploy + e2e curl avec la vraie device key**
 
 ```bash
 supabase functions deploy sync
@@ -768,7 +768,7 @@ curl -s "https://bzdbnptnubkkagmmxhyi.supabase.co/rest/v1/match_state?match_id=e
 ```
 Expected: ACK `{"matchId":"CURLTEST1","lastAcceptedSequence":1}` deux fois ; `401` sans clé ; `match_state` contient la ligne (anon key du dashboard si besoin — **[USER ACTION]** pour la récupérer et la stocker dans `.secrets/phase-4a.env` sous `ANON_KEY=`).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add supabase/functions/sync
@@ -785,7 +785,7 @@ git commit -m "feat(4a): Edge Function sync complète — auth device key, valid
 - Modify: `watch/connect-iq/source/ui/MatchView.mc:161,178-181,209`
 - Test: `watch/connect-iq/source/tests/SyncTest.mc`
 
-- [ ] **Step 1: Tests d'abord (Run No Evil)**
+- [x] **Step 1: Tests d'abord (Run No Evil)**
 
 Créer `watch/connect-iq/source/tests/SyncTest.mc` :
 ```monkeyc
@@ -847,7 +847,7 @@ module SyncTests {
 }
 ```
 
-- [ ] **Step 2: Exécuter pour voir échouer (symboles inconnus)**
+- [x] **Step 2: Exécuter pour voir échouer (symboles inconnus)**
 
 ```bash
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
@@ -856,7 +856,7 @@ monkeydo /tmp/t4-test.prg fr55 -t 2>&1 | grep -E "PASSED|FAILED|Symbol"
 ```
 Expected: échec de compilation (`Symbol Not Found: MatchIds`) ou tests en échec.
 
-- [ ] **Step 3: Implémenter MatchIds.mc**
+- [x] **Step 3: Implémenter MatchIds.mc**
 
 ```monkeyc
 import Toybox.Lang;
@@ -894,7 +894,7 @@ module MatchIds {
 }
 ```
 
-- [ ] **Step 4: Implémenter DeviceId.mc**
+- [x] **Step 4: Implémenter DeviceId.mc**
 
 ```monkeyc
 import Toybox.Application.Storage;
@@ -922,19 +922,19 @@ module DeviceId {
 }
 ```
 
-- [ ] **Step 5: Brancher dans MatchView (matchId Crockford)**
+- [x] **Step 5: Brancher dans MatchView (matchId Crockford)**
 
 Dans `watch/connect-iq/source/ui/MatchView.mc` :
 1. `startMatch()` (ligne 161) : remplacer `mMatchId = genMatchId();` par `mMatchId = MatchIds.generate();`
 2. `menuSelect()` (ligne 209) : remplacer `mEngine.newMatch(mEngine.getConfig(), genMatchId());` par `mEngine.newMatch(mEngine.getConfig(), MatchIds.generate());`
 3. Supprimer la fonction `genMatchId()` (lignes 178-181) et son commentaire.
 
-- [ ] **Step 6: Run tests — verts**
+- [x] **Step 6: Run tests — verts**
 
 Même commande qu'en Step 2.
 Expected: `PASSED (passed=44, failed=0, errors=0)` (39 + 5 nouveaux).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add watch/connect-iq/source
@@ -949,7 +949,7 @@ git commit -m "feat(4a): matchId Crockford base32 (8 chars) + deviceId d'install
 - Create: `watch/connect-iq/source/services/SyncCore.mc`
 - Modify: `watch/connect-iq/source/tests/SyncTest.mc`
 
-- [ ] **Step 1: Tests d'abord**
+- [x] **Step 1: Tests d'abord**
 
 Ajouter à `SyncTest.mc` (dans le module SyncTests) :
 ```monkeyc
@@ -1047,9 +1047,9 @@ Ajouter à `SyncTest.mc` (dans le module SyncTests) :
     }
 ```
 
-- [ ] **Step 2: Voir échouer (Symbol Not Found SyncCore)** — même commande que Task 6 Step 2.
+- [x] **Step 2: Voir échouer (Symbol Not Found SyncCore)** — même commande que Task 6 Step 2.
 
-- [ ] **Step 3: Implémenter SyncCore.mc**
+- [x] **Step 3: Implémenter SyncCore.mc**
 
 ```monkeyc
 import Toybox.Lang;
@@ -1128,11 +1128,11 @@ class SyncCore {
 }
 ```
 
-- [ ] **Step 4: Run tests — verts**
+- [x] **Step 4: Run tests — verts**
 
 Expected: `PASSED (passed=52, failed=0, errors=0)` (44 + 8).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add watch/connect-iq/source
@@ -1147,7 +1147,7 @@ git commit -m "feat(4a): SyncCore pur — batch/sérialisation/buildBody/backoff
 - Modify: `watch/connect-iq/source/MatchStore.mc`
 - Modify: `watch/connect-iq/source/tests/StoreTest.mc`
 
-- [ ] **Step 1: Tests d'abord**
+- [x] **Step 1: Tests d'abord**
 
 Ajouter à `StoreTest.mc` (respecter le style existant du fichier — module, helper engine) :
 ```monkeyc
@@ -1192,9 +1192,9 @@ Ajouter à `StoreTest.mc` (respecter le style existant du fichier — module, he
 ```
 (Adapter `_engine()` au helper réellement présent dans StoreTest.mc ; sinon définir : `new ScoreEngine(MatchPresets.get(2), "PFX")`.)
 
-- [ ] **Step 2: Voir échouer** — même commande tests que Task 6 Step 2 (Symbol Not Found getPendingFrom).
+- [x] **Step 2: Voir échouer** — même commande tests que Task 6 Step 2 (Symbol Not Found getPendingFrom).
 
-- [ ] **Step 3: Implémenter dans MatchStore.mc**
+- [x] **Step 3: Implémenter dans MatchStore.mc**
 
 1. `saveMatch` — remplacer `"pf" => 1,` par pf préservé (insérer AVANT le bloc `var meta = {`) :
 ```monkeyc
@@ -1233,11 +1233,11 @@ puis dans la meta : `"pf" => pf,`.
     }
 ```
 
-- [ ] **Step 4: Run tests — verts**
+- [x] **Step 4: Run tests — verts**
 
 Expected: `PASSED (passed=55, failed=0, errors=0)` (52 + 3).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add watch/connect-iq/source
@@ -1253,7 +1253,7 @@ git commit -m "feat(4a): MatchStore — pf persistant (getPendingFrom/ackUntil),
 - Modify: `watch/connect-iq/manifest.xml`
 - Modify: `watch/connect-iq/source/ui/MatchView.mc`
 
-- [ ] **Step 1: SyncService.mc**
+- [x] **Step 1: SyncService.mc**
 
 ```monkeyc
 import Toybox.Application.Properties;
@@ -1360,7 +1360,7 @@ class SyncService {
 }
 ```
 
-- [ ] **Step 2: manifest.xml — permission + properties + settings**
+- [x] **Step 2: manifest.xml — permission + properties + settings**
 
 Dans `watch/connect-iq/manifest.xml`, remplacer `<iq:permissions/>` par :
 ```xml
@@ -1385,7 +1385,7 @@ Puis, juste après le bloc permissions (dans `<iq:application>`), ajouter :
 ```
 (la device key est hexadécimale → compatible alphaNumeric.)
 
-- [ ] **Step 3: Câblage MatchView**
+- [x] **Step 3: Câblage MatchView**
 
 Dans `watch/connect-iq/source/ui/MatchView.mc` :
 1. Champ : ajouter `var mSync;` près des autres champs.
@@ -1398,7 +1398,7 @@ Dans `watch/connect-iq/source/ui/MatchView.mc` :
 5. `clearMatch()` (zone DOWN, ligne ~133) : après `MatchStore.clearMatch();` et `mEngine = null;`, ajouter :
    `mSync.trigger(null);`
 
-- [ ] **Step 4: Builds ×5 + tests verts**
+- [x] **Step 4: Builds ×5 + tests verts**
 
 ```bash
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
@@ -1410,7 +1410,7 @@ monkeydo /tmp/t4-test.prg fr55 -t 2>&1 | grep -E "PASSED|FAILED"
 ```
 Expected: 5 builds OK ; `PASSED (passed=55, failed=0, errors=0)`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add watch/connect-iq
@@ -1425,7 +1425,7 @@ git commit -m "feat(4a): SyncService (makeWebRequest, watchdog 30s, drain) + man
 - Create: `docs/superpowers/notes/phase-4a-sync-results.md`
 - Modify: `docs/superpowers/plans/2026-09-19-phase-4a-sync.md` (coches)
 
-- [ ] **Step 1: E2E simulateur (réseau du Mac)**
+- [x] **Step 1: E2E simulateur (réseau du Mac)**
 
 ```bash
 # properties simu : File > Edit Persistent Storage > Edit Application.Properties
@@ -1444,7 +1444,7 @@ curl -s "https://bzdbnptnubkkagmmxhyi.supabase.co/rest/v1/events?select=*&order=
 ```
 Expected : `match_state` score 2-1 ; events seq 1-2. Puis : menu → QUITTER → relancer l'app → flush → `pf` avancé ; kill de l'app pendant 3 points → relance → rattrapage complet (aucune perte, séquences continues).
 
-- [ ] **Step 2: Matériel epix + GCM — [USER ACTION]**
+- [x] **Step 2: Matériel epix + GCM — [USER ACTION]**
 
 1. Sideload `badmintonscore-epix2pro51mm.prg` sur l'epix.
 2. Dans GCM (téléphone) : réglages de l'app → saisir `backendUrl` et `deviceKey` (vérifie OQ4 : l'UI settings des apps sideloadées).
@@ -1453,11 +1453,11 @@ Expected : `match_state` score 2-1 ; events seq 1-2. Puis : menu → QUITTER →
 5. Mode avion pendant 5 points → couper l'avion → rattrapage complet.
 6. Noter tout dans les notes.
 
-- [ ] **Step 3: fr55/instinct2 en simulateur**
+- [x] **Step 3: fr55/instinct2 en simulateur**
 
 Builds + un match rapide chacun (properties via le menu du simulateur) → lignes créées avec leur propre `deviceId`. (Simulation ≠ device : seul l'epix valide GCM.)
 
-- [ ] **Step 4: Notes + plan coché + PR**
+- [x] **Step 4: Notes + plan coché + PR**
 
 Créer `docs/superpowers/notes/phase-4a-sync-results.md` (même style que `phase-3-sim-results.md`) : scénario, latences, leçons, OQ1/OQ2/OQ4 levées ou reportées. Cocher les tasks de ce plan. Puis :
 
