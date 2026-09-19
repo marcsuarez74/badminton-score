@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleSync, sha256Hex, type Db, type Validated } from "./handler.ts";
 
 const URL_MATCH = "https://fn.test/functions/v1/sync/matches/B7K2QM9X/events";
@@ -89,4 +89,3 @@ Deno.test("403 si le match appartient à un autre device", async () => {
   assertEquals(res.status, 403);
 });
 
-Deno.test("assert helper utilisé", () => { assert(true); });

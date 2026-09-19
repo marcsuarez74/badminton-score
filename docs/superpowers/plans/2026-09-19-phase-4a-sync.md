@@ -742,13 +742,12 @@ Deno.test("403 si le match appartient à un autre device", async () => {
   assertEquals(res.status, 403);
 });
 
-Deno.test("assert helper utilisé", () => { assert(true); });
 ```
 
 - [ ] **Step 4: Run tests**
 
 Run: `deno test supabase/functions/sync/handler_test.ts --allow-all`
-Expected: `ok. 9 passed` (tous verts).
+Expected: `ok. 8 passed` (tous verts).
 
 - [ ] **Step 5: Deploy + e2e curl avec la vraie device key**
 
@@ -773,7 +772,7 @@ Expected: ACK `{"matchId":"CURLTEST1","lastAcceptedSequence":1}` deux fois ; `40
 
 ```bash
 git add supabase/functions/sync
-git commit -m "feat(4a): Edge Function sync complète — auth device key, validation, idempotence, ACK (9 tests deno)"
+git commit -m "feat(4a): Edge Function sync complète — auth device key, validation, idempotence, ACK (8 tests deno)"
 ```
 
 ---
@@ -1468,7 +1467,7 @@ git commit -m "docs(4a): résultats simu + matériel, plan coché"
 git push -u origin phase-4a
 gh pr create --base main --head phase-4a --title "Phase 4a : synchronisation (POC, Supabase, SyncService)" --body "$(cat <<'EOF'
 ## Summary
-- Edge Function `sync` : auth device key (sha256), validation stricte, upserts idempotents `(match_id, sequence)`, ACK `{matchId, lastAcceptedSequence}` — 9 tests Deno
+- Edge Function `sync` : auth device key (sha256), validation stricte, upserts idempotents `(match_id, sequence)`, ACK `{matchId, lastAcceptedSequence}` — 8 tests Deno
 - Schéma Supabase : matches/events/match_state/devices + RLS lecture seule publique + publication realtime (spec sync §12)
 - Montre : SyncService (batchs ≤ 5 + snapshot, watchdog 30 s, backoff 10 s → 2 min, drain), MatchStore `pf` persistant, matchId Crockford 8 chars, deviceId d'installation ; 55 tests Run No Evil verts × 3 profils
 - Décision D-3 : rétraction undo (TYPE_UNDO) reportée Phase 7 — historique append-only, snapshot fait foi
@@ -1489,7 +1488,7 @@ EOF
 1. `makeWebRequest` → GCM → Edge Function → PostgreSQL fonctionnel **sur l'epix matérielle** (le seul vrai risque de la phase).
 2. Idempotence prouvée (re-POST sans duplication), ACK traité (pf avance, rien n'est renvoyé inutilement).
 3. Offline-first intact : score local instantané, file jamais perdue, rattrapage complet après reprise/avion.
-4. 55+ tests RNE verts × 3 profils ; 9 tests Deno verts.
+4. 55+ tests RNE verts × 3 profils ; 8 tests Deno verts.
 5. Notes + PR + coches plan.
 
 ## Points d'attention pour l'implémenteur
