@@ -288,7 +288,7 @@ class MatchView extends WatchUi.View {
 
     // Bandeau supérieur plein (coins rognés par le masque rond — voulu) avec
     // texte blanc centré verticalement ; police adaptée à la corde du cercle
-    // (comparaison entière sur la demi-corde au carré, pas de flottants).
+    // (demi-corde au carré pour éviter la racine carrée).
     function drawBanner(dc as Dc, w as Number, h as Number, text as String, color as Number) as Void {
         var bannerH = h * 3 / 10;
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
@@ -480,20 +480,23 @@ class MatchView extends WatchUi.View {
     // Direction B : PAS de titre — 4 lignes badge+label occupant le cercle
     // (bande h/8 → 7h/8). Ligne sélectionnée : surlignage pleine largeur
     // C_BANNER, label et badge en vert ; autres lignes : fond absent, label
-    // C_GREY, badge contour C_SEP / texte C_DIM. Badge = double fillRoundedRectangle
-    // (pas de strokeRoundRect dans l'API).
+    // C_GREY, badge contour C_SEP / texte C_DIM. Badge = anneau 2px (fill
+    // extérieur + fill intérieur noir) — anneau plus visible que le simple
+    // contour 1px de drawRoundedRectangle.
     function drawMenu(dc as Dc, w as Number, h as Number) as Void {
-        var items = ["REPRENDRE", "FORMAT", "RESET", "QUITTER"];
+        var items = ["RESUME", "FORMAT", "RESET", "QUITTER"];
         // Petits écrans (rond 208 / semi-octogone 176) : items en SMALL —
         // 4 items MEDIUM débordent de la corde du bas (fr55 : 153px vs corde 140).
         var itemFont = (h < 300) ? Graphics.FONT_SMALL : Graphics.FONT_MEDIUM;
         var fItem = dc.getFontHeight(itemFont);
-        var fTiny = dc.getFontHeight(Graphics.FONT_TINY);
         var radius = h / 40;
         var padX = w / 12;
-        var bp = h / 60;                     // padding interne du badge
-        var badgeW = dc.getTextWidthInPixels("START", Graphics.FONT_TINY) + 2 * bp;
-        var badgeH = fTiny + 2 * bp;
+        // Badge compact : texte en XTINY (le TINY fr55 était presque aussi
+        // gros que le label), boîte collée au texte (padding fixe 3px).
+        var fBadge = dc.getFontHeight(Graphics.FONT_XTINY);
+        var bp = 3;                          // padding interne du badge (fixe)
+        var badgeW = dc.getTextWidthInPixels("START", Graphics.FONT_XTINY) + 2 * bp;
+        var badgeH = fBadge + 2 * bp;
         var vp = h / 60;                     // padding vertical de ligne
         var rowH = (badgeH > fItem ? badgeH : fItem) + 2 * vp;
         var topLimit = h / 8;
@@ -519,13 +522,22 @@ class MatchView extends WatchUi.View {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
             dc.fillRoundedRectangle(padX + 2, by + 2, badgeW - 4, badgeH - 4, radius > 2 ? radius - 2 : 1);
             dc.setColor(sel ? C_ME : C_DIM, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(padX + badgeW / 2, by + (badgeH - fTiny) / 2, Graphics.FONT_TINY, "START", Graphics.TEXT_JUSTIFY_CENTER);
-            // label (recalé à gauche si la largeur manque — REPRENDRE sur fr55)
+            dc.drawText(padX + badgeW / 2, by + (badgeH - fBadge) / 2, Graphics.FONT_XTINY, "START", Graphics.TEXT_JUSTIFY_CENTER);
+            // label (recul si la largeur manque ; repli TINY puis aligne à droite)
             var labelX = padX + badgeW + labelGap;
-            var labelW = dc.getTextWidthInPixels(items[i], itemFont);
-            if (labelX + labelW > w - padX) { labelX = w - padX - labelW; }
+            var labelFont = itemFont;
+            var labelW = dc.getTextWidthInPixels(items[i], labelFont);
+            if (labelX + labelW > w - padX) {
+                var tinyW = dc.getTextWidthInPixels(items[i], Graphics.FONT_TINY);
+                if (labelX + tinyW <= w - padX) {
+                    labelFont = Graphics.FONT_TINY;
+                    labelW = tinyW;
+                } else {
+                    labelX = w - padX - labelW;
+                }
+            }
             dc.setColor(sel ? C_ME : C_GREY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(labelX, y + (rowH - fItem) / 2, itemFont, items[i], Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(labelX, y + (rowH - dc.getFontHeight(labelFont)) / 2, labelFont, items[i], Graphics.TEXT_JUSTIFY_LEFT);
             y += spacing;
         }
     }
