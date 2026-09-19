@@ -12,3 +12,6 @@ supabase/.branches
 .secrets/
 prototypes/sync-test/sideload/
 watch/connect-iq/sideload/
+
+# Outil d'audit playwright local
+.playwright-cli/
