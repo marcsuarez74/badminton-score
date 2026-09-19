@@ -13,8 +13,9 @@ Deno.serve(async (req: Request) => {
       status: 405, headers: { "Content-Type": "application/json" },
     });
   }
+  const text = await req.text();
   let body: unknown;
-  try { body = await req.json(); } catch { body = { raw: "unparseable" }; }
+  try { body = JSON.parse(text); } catch { body = { raw: text.slice(0, 2048) }; }
   const { data, error } = await supabase
     .from("poc_events").insert({ payload: body }).select("id").single();
   if (error) {
@@ -22,7 +23,7 @@ Deno.serve(async (req: Request) => {
       status: 500, headers: { "Content-Type": "application/json" },
     });
   }
-  return new Response(JSON.stringify({ ok: true, id: data.id }), {
+  return new Response(JSON.stringify({ ok: true, id: data.id, lastAcceptedSequence: data.id }), {
     status: 200, headers: { "Content-Type": "application/json" },
   });
 });
