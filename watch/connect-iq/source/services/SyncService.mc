@@ -17,6 +17,7 @@ class SyncService {
     var mBackoffUntilMs = 0l;
     var mErrors = 0;
     var mEngineRef = null;      // dernier engine vu (drain / watchdog)
+    var mInFlightMatchId = "";  // matchId de la requête en vol (ACK lié au bon match)
     var mTimer;                 // watchdog 30 s OU drain — un seul rôle à la fois
 
     function initialize(deviceId as String) {
@@ -42,6 +43,7 @@ class SyncService {
 
     function _send(url as String, key as String, engine as ScoreEngine, batch as Array) as Void {
         mInFlight = true;
+        mInFlightMatchId = engine.getMatchId();
         mLastAttemptMs = System.getTimer();
         var fullUrl = url + "/matches/" + engine.getMatchId() + "/events";
         var body = mCore.buildBody(engine, mDeviceId, batch);
@@ -65,7 +67,7 @@ class SyncService {
             mBackoffUntilMs = 0l;
             if (data != null && data instanceof Dictionary) {
                 var ack = (data as Dictionary)["lastAcceptedSequence"];
-                if (ack != null) {
+                if (ack != null && mEngineRef != null && mEngineRef.getMatchId().equals(mInFlightMatchId)) {
                     MatchStore.ackUntil(ack);
                     System.println("[sync] ack " + ack);
                 }
