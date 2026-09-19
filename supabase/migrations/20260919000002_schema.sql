@@ -54,6 +54,8 @@ alter table match_state enable row level security;
 create policy "public read matches"     on matches     for select to anon using (true);
 create policy "public read events"      on events      for select to anon using (true);
 create policy "public read state"       on match_state for select to anon using (true);
+revoke all on devices from anon, authenticated;
+alter table devices enable row level security;
 
 drop table if exists poc_events;
 
