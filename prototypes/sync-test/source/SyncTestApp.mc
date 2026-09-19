@@ -9,7 +9,7 @@ import Toybox.WatchUi;
 const BACKEND_URL = "https://bzdbnptnubkkagmmxhyi.supabase.co/functions/v1/sync";
 
 class SyncTestView extends WatchUi.View {
-    hidden var mResult = "SELECT = POST";
+    var mResult = "SELECT = POST";
 
     function initialize() {
         View.initialize();
@@ -33,7 +33,7 @@ class SyncTestView extends WatchUi.View {
         Communications.makeWebRequest(BACKEND_URL + "/matches/POCTEST1/events", body, options, method(:onResponse));
     }
 
-    hidden function onResponse(responseCode as Number, data as Dictionary or String or Null) as Void {
+    function onResponse(responseCode as Number, data as Dictionary or String or Null) as Void {
         if (responseCode == 200 && data != null && data instanceof Dictionary) {
             mResult = "HTTP 200 las=" + data["lastAcceptedSequence"];
         } else {
@@ -56,7 +56,7 @@ class SyncTestView extends WatchUi.View {
 }
 
 class SyncTestDelegate extends WatchUi.BehaviorDelegate {
-    hidden var mView;
+    var mView;
 
     function initialize(view) {
         BehaviorDelegate.initialize();
