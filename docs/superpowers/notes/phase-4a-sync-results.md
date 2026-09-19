@@ -29,7 +29,7 @@ Date : 2026-09-19 · Branche `phase-4a` · Build final : commit `aa836ef` · Tes
 
 1. **GCM 5.29 + firmware 27.18 : ouvrir la page Réglages d'une app CIQ sideloadée REBOOTE la montre** — reproduit avec le sample officiel Garmin `ApplicationStorage` (settings intacts du SDK). Nos 3 variantes de `settings.xml` (type url, alphaNumeric, @Strings+defaults) plantent identiquement. **OQ4 : reportée — bloquée par GCM 5.29** (à re-tester à la prochaine version GCM ; signalement Garmin à faire).
 2. **`Properties.getValue` ne retourne PAS les defaults déclarés dans settings.xml sur matériel** (la simu, elle, les retourne). Symptôme : app silencieuse (no-op) malgré config embarquée. Diagnostic par probe à valeurs codées en dur (fonctionne immédiatement).
-   → Contournement pour le matériel : mini-app « config » (même app id) appelant `Properties.setValue` (persiste sur la montre), ou valeurs en dur dans un build local non commité. À re-tester après fix GCM : la saisie via Réglages GCM reste le chemin nominal.
+   → Contournement retenu : **`scripts/build-release.sh`** — lit `.secrets/phase-4a.env`, injecte backendUrl/deviceKey en defaults dans une copie temporaire, produit des .prg signés dans `watch/connect-iq/sideload/` (gitigné), prêts à sideloader. Code commité sans secret. Alternative testée en simu : mini-app « config » (même app id) appelant `Properties.setValue`. À re-tester après fix GCM : la saisie via Réglages GCM reste le chemin nominal.
 3. **`updated_at` de `match_state` ne s'actualise pas aux upserts** (default now() sans trigger). Sans impact : l'overlay s'appuie sur les événements Realtime. Follow-up candidat : trigger `moddatetime` (migration 1 ligne).
 
 ## Leçons pour les phases suivantes
