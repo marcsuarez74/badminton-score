@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 using Toybox.System;
 using Toybox.WatchUi;
 
@@ -477,12 +478,14 @@ class MatchView extends WatchUi.View {
         drawFooter(dc, w, h, footerText);
     }
 
-    // Direction B : PAS de titre — 4 lignes badge+label occupant le cercle
-    // (bande h/8 → 7h/8). Ligne sélectionnée : surlignage pleine largeur
-    // C_BANNER, label et badge en vert ; autres lignes : fond absent, label
-    // C_GREY, badge contour C_SEP / texte C_DIM. Badge = anneau 2px (fill
-    // extérieur + fill intérieur noir) — anneau plus visible que le simple
-    // contour 1px de drawRoundedRectangle.
+    // Direction B : PAS de titre — 4 lignes badge+label dans la bande centrale
+    // (h/6 → 5h/6). Largeur des lignes = corde du cercle aux bords extérieurs
+    // des lignes extrêmes (haut de la 1re, bas de la dernière), marge h/80 :
+    // sur rond, une ligne pleine largeur déborde du cadre en haut et en bas.
+    // Ligne sélectionnée : surlignage C_BANNER, label et badge en vert ;
+    // autres lignes : fond absent, label C_GREY, badge contour C_SEP / texte
+    // C_DIM. Badge = anneau 2px (fill extérieur + fill intérieur noir) —
+    // anneau plus visible que le simple contour 1px de drawRoundedRectangle.
     function drawMenu(dc as Dc, w as Number, h as Number) as Void {
         var items = ["RESUME", "FORMAT", "RESET", "QUITTER"];
         // Petits écrans (rond 208 / semi-octogone 176) : items en SMALL —
@@ -490,50 +493,61 @@ class MatchView extends WatchUi.View {
         var itemFont = (h < 300) ? Graphics.FONT_SMALL : Graphics.FONT_MEDIUM;
         var fItem = dc.getFontHeight(itemFont);
         var radius = h / 40;
-        var padX = w / 12;
         // Badge compact : texte en XTINY (le TINY fr55 était presque aussi
-        // gros que le label), boîte collée au texte (padding fixe 3px).
+        // gros que le label), boîte collée au texte (padding fixe 2px).
         var fBadge = dc.getFontHeight(Graphics.FONT_XTINY);
-        var bp = 3;                          // padding interne du badge (fixe)
+        var bp = 2;
         var badgeW = dc.getTextWidthInPixels("START", Graphics.FONT_XTINY) + 2 * bp;
         var badgeH = fBadge + 2 * bp;
-        var vp = h / 60;                     // padding vertical de ligne
+        var vp = h / 80;                     // padding vertical de ligne
         var rowH = (badgeH > fItem ? badgeH : fItem) + 2 * vp;
-        var topLimit = h / 8;
-        var bottomLimit = h * 7 / 8;         // leçon Phase 1 : bas de texte ≤ 7h/8 sur rond
+        var topLimit = h / 6;
+        var bottomLimit = h * 5 / 6;
         var zone = bottomLimit - topLimit;
-        var spacing = rowH + h / 30;
+        var spacing = rowH + h / 40;
         if (spacing * 3 + rowH > zone) {
-            spacing = (zone - rowH) / 3;     // compression (fr55)
+            spacing = (zone - rowH) / 3;     // compression (fr55, epix)
             if (spacing < 1) { spacing = 1; }
         }
         var y = topLimit + (zone - (spacing * 3 + rowH)) / 2;
-        var labelGap = h / 40;
+        // Corde aux bords extérieurs des lignes extrêmes — la plus restrictive
+        // (bord haut de la 1re ligne ou bord bas de la dernière, symétrie).
+        var r = h / 2;
+        var dyT = r - y;
+        var dyB = y + spacing * 3 + rowH - r;
+        var dy = dyT > dyB ? dyT : dyB;
+        var hc = 0;                          // demi-corde (entier)
+        if (dy < r) { hc = Math.sqrt(r * r - dy * dy).toNumber(); }
+        var inset = h / 80;
+        var rowLeft = r - hc + inset;
+        var rowRight = r + hc - inset;
+        var labelGap = 8;
         for (var i = 0; i < items.size(); i += 1) {
             var sel = (i == mMenuIndex);
             if (sel) {
                 dc.setColor(C_BANNER, Graphics.COLOR_TRANSPARENT);
-                dc.fillRoundedRectangle(padX, y, w - 2 * padX, rowH, radius);
+                dc.fillRoundedRectangle(rowLeft, y, rowRight - rowLeft, rowH, radius);
             }
             // badge touche
             var by = y + (rowH - badgeH) / 2;
             dc.setColor(sel ? C_ME : C_SEP, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(padX, by, badgeW, badgeH, radius);
+            dc.fillRoundedRectangle(rowLeft, by, badgeW, badgeH, radius);
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(padX + 2, by + 2, badgeW - 4, badgeH - 4, radius > 2 ? radius - 2 : 1);
+            dc.fillRoundedRectangle(rowLeft + 2, by + 2, badgeW - 4, badgeH - 4, radius > 2 ? radius - 2 : 1);
             dc.setColor(sel ? C_ME : C_DIM, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(padX + badgeW / 2, by + (badgeH - fBadge) / 2, Graphics.FONT_XTINY, "START", Graphics.TEXT_JUSTIFY_CENTER);
-            // label (recul si la largeur manque ; repli TINY puis aligne à droite)
-            var labelX = padX + badgeW + labelGap;
+            dc.drawText(rowLeft + badgeW / 2, by + (badgeH - fBadge) / 2, Graphics.FONT_XTINY, "START", Graphics.TEXT_JUSTIFY_CENTER);
+            // label (repli TINY si la corde manque, puis recul sans passer sous le badge)
+            var labelX = rowLeft + badgeW + labelGap;
             var labelFont = itemFont;
             var labelW = dc.getTextWidthInPixels(items[i], labelFont);
-            if (labelX + labelW > w - padX) {
+            if (labelX + labelW > rowRight) {
                 var tinyW = dc.getTextWidthInPixels(items[i], Graphics.FONT_TINY);
-                if (labelX + tinyW <= w - padX) {
+                if (labelX + tinyW <= rowRight) {
                     labelFont = Graphics.FONT_TINY;
                     labelW = tinyW;
                 } else {
-                    labelX = w - padX - labelW;
+                    labelX = rowRight - labelW;
+                    if (labelX < rowLeft + badgeW + labelGap) { labelX = rowLeft + badgeW + labelGap; }
                 }
             }
             dc.setColor(sel ? C_ME : C_GREY, Graphics.COLOR_TRANSPARENT);
