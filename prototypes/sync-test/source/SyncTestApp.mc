@@ -24,9 +24,9 @@ class SyncTestView extends WatchUi.View {
             "events" => [ { "type" => 0, "arg" => 0, "sequence" => 1, "ts" => 0, "prevMe" => 0, "prevOpp" => 0 } ]
         };
         var options = {
-            "method" => Communications.HTTP_REQUEST_METHOD_POST,
-            "headers" => { "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON },
-            "responseType" => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+            :method => Communications.HTTP_REQUEST_METHOD_POST,
+            :headers => { "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON },
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
         mResult = "envoi...";
         WatchUi.requestUpdate();
