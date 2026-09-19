@@ -6,3 +6,7 @@ bin/
 .env
 *.pdf
 prototypes/button-test/sideload/
+supabase/.temp/
+supabase/.branches/
+supabase/.branches
+.secrets/
