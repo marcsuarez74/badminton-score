@@ -22,10 +22,12 @@ class MatchView extends WatchUi.View {
     var mMatchPresetIndex = 2;   // format du match EN COURS (figé au start/restore) —
                                  // distinct de mSetupIndex (sélection à l'écran Setup)
     var mMatchId = "";        // id du match courant (protocole §7.1)
+    var mSync;                // service de sync Phase 4a (no-op si non configuré)
 
     function initialize() {
         View.initialize();
         mSetupIndex = MatchStore.loadPresetIndex();   // format mémorisé (§5)
+        mSync = new SyncService(DeviceId.getOrCreate());   // inconditionnel : aucun trigger null même sans match restauré
         var saved = MatchStore.loadMatch();
         if (saved != null) {
             // Match en cours persisté : reprise directe (§5 Démarrage)
@@ -132,6 +134,7 @@ class MatchView extends WatchUi.View {
         if (mScreen == MatchScreen.MATCH_FINISHED) {
             MatchStore.clearMatch();             // résultat consulté → prochain lancement : Setup (§5)
             mEngine = null;                      // plus de match en cours : ni syncScreen ni persist ne sauvegarderont
+            mSync.trigger(null);                 // plus de drain (mEngineRef = null)
             mScreen = MatchScreen.SETUP;         // DOWN = NOUVEAU (format mémorisé)
             WatchUi.requestUpdate();
             return true;
@@ -159,11 +162,12 @@ class MatchView extends WatchUi.View {
     // ---- transitions ----
 
     function startMatch() as Void {
-        mMatchId = genMatchId();
+        mMatchId = MatchIds.generate();
         mMatchPresetIndex = mSetupIndex;
         MatchStore.savePresetIndex(mSetupIndex);
         mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
         MatchStore.saveMatch(mEngine, mMatchPresetIndex);   // kill avant 1er point → reprise 0-0
+        mSync.trigger(mEngine);             // flush du premier batch (§9.4)
         mScreen = MatchScreen.SCORE;
         WatchUi.requestUpdate();
     }
@@ -175,16 +179,11 @@ class MatchView extends WatchUi.View {
         }
     }
 
-    // Id de match : ms depuis le boot — suffit en local ; le backend
-    // l'espacera du deviceId en Phase 4a (§8.2 : id = matchId:sequence).
-    function genMatchId() as String {
-        return System.getTimer().toString();
-    }
-
     // Après chaque mutation moteur : aligner l'écran sur la phase dérivée.
     function syncScreen() as Void {
         if (mEngine == null) { return; }   // pas de match : rien à dériver ni à sauvegarder
         MatchStore.saveMatch(mEngine, mMatchPresetIndex);   // setValue synchrone, §7.2
+        mSync.trigger(mEngine);             // drain après chaque mutation (§7 sync)
         var p = mEngine.getPhase();
         if (p == ScorePhase.MATCH_FINISHED) {
             mScreen = MatchScreen.MATCH_FINISHED;
@@ -206,7 +205,7 @@ class MatchView extends WatchUi.View {
             mScreen = MatchScreen.SETUP;      // Changer de format (START = nouveau match)
             WatchUi.requestUpdate();
         } else if (mMenuIndex == 2) {
-            mEngine.newMatch(mEngine.getConfig(), genMatchId());   // Réinitialiser
+            mEngine.newMatch(mEngine.getConfig(), MatchIds.generate());   // Réinitialiser
             mScreen = MatchScreen.SCORE;   // sortir du menu AVANT syncScreen (garde MENU de syncScreen)
             syncScreen();                  // + sauvegarde du nouveau match
         } else {

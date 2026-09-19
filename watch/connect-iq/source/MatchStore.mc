@@ -50,11 +50,19 @@ module MatchStore {
             Storage.deleteValue(EVT_PREFIX + chunk);
             chunk += 1;
         }
+        // pendingFrom préservé si c'est toujours le même match (sinon 1) —
+        // les ACK ne doivent pas être perdus à chaque save (§7 sync).
+        var prevMeta = Storage.getValue(META_KEY) as Dictionary;
+        var pf = 1;
+        if (prevMeta != null && prevMeta["mid"] != null && prevMeta["pf"] != null
+                && prevMeta["mid"].toString().equals(engine.getMatchId())) {
+            pf = prevMeta["pf"];
+        }
         var meta = {
             "v" => 1,
             "mid" => engine.getMatchId(),
             "pi" => presetIndex,
-            "pf" => 1,                     // pendingFrom : rien d'acquitté en Phase 3 (§7.2)
+            "pf" => pf,                    // pendingFrom : 1re séquence non acquittée (§7 sync)
             "ls" => engine.getLastSequence(),
             "base" => engine.getBaseState()
         };
@@ -93,6 +101,28 @@ module MatchStore {
         while (Storage.getValue(EVT_PREFIX + chunk) != null) {
             Storage.deleteValue(EVT_PREFIX + chunk);
             chunk += 1;
+        }
+    }
+
+    // ---- sync (Phase 4a) : pointeur d'acquittement ----
+
+    // Première séquence non acquittée (meta["pf"]). 1 par défaut.
+    function getPendingFrom() as Number {
+        var meta = Storage.getValue(META_KEY) as Dictionary;
+        if (meta == null || meta["pf"] == null) { return 1; }
+        return meta["pf"];
+    }
+
+    // ACK backend : les events de séquence ≤ seq sont acquittés (spec sync §7).
+    // Sans effet si la meta a disparu (match purgé) ou si seq recule.
+    function ackUntil(seq as Number) as Void {
+        var meta = Storage.getValue(META_KEY) as Dictionary;
+        if (meta != null) {
+            var pf = meta["pf"];
+            if (pf != null && seq >= pf) {
+                meta["pf"] = seq + 1;      // pf = 1re séquence non acquittée
+                Storage.setValue(META_KEY, meta);
+            }
         }
     }
 }
