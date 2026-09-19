@@ -64,3 +64,49 @@ function test_store_prefs(logger as Logger) as Boolean {
     MatchStore.savePresetIndex(2);         // hygiene : valeur par defaut
     return true;
 }
+
+// ---- sync (Phase 4a) : pointeur d'acquittement pf ----
+
+(:test)
+function test_store_pf_default_et_ack(logger as Logger) as Boolean {
+    MatchStore.clearMatch();               // état propre avant test
+    var engine = new ScoreEngine(MatchPresets.get(2), "PFX");
+    engine.pointMe();
+    MatchStore.saveMatch(engine, 2);
+    Test.assertEqualMessage(1, MatchStore.getPendingFrom(), "pf défaut = 1");
+    MatchStore.ackUntil(1);
+    Test.assertEqualMessage(2, MatchStore.getPendingFrom(), "pf=2 après ack");
+    MatchStore.ackUntil(1);                // un ack plus ancien ne recule pas pf
+    Test.assertEqualMessage(2, MatchStore.getPendingFrom(), "pf ne recule pas");
+    MatchStore.clearMatch();
+    return true;
+}
+
+(:test)
+function test_store_pf_preserve_apres_save(logger as Logger) as Boolean {
+    MatchStore.clearMatch();
+    var engine = new ScoreEngine(MatchPresets.get(2), "PFX");
+    engine.pointMe();
+    MatchStore.saveMatch(engine, 2);
+    MatchStore.ackUntil(3);                // ack hypothétique au-delà du journal → pf=4
+    engine.pointMe();
+    MatchStore.saveMatch(engine, 2);       // re-save du MÊME match
+    Test.assertEqualMessage(4, MatchStore.getPendingFrom(), "pf doit être préservé");
+    MatchStore.clearMatch();
+    return true;
+}
+
+(:test)
+function test_store_pf_reset_nouveau_match(logger as Logger) as Boolean {
+    MatchStore.clearMatch();
+    var engine = new ScoreEngine(MatchPresets.get(2), "PFX");
+    engine.pointMe();
+    MatchStore.saveMatch(engine, 2);
+    MatchStore.ackUntil(1);
+    var other = new ScoreEngine(MatchPresets.get(2), "PF2");
+    other.pointMe();
+    MatchStore.saveMatch(other, 2);        // matchId différent → pf repart à 1
+    Test.assertEqualMessage(1, MatchStore.getPendingFrom(), "pf reset nouveau match");
+    MatchStore.clearMatch();
+    return true;
+}
