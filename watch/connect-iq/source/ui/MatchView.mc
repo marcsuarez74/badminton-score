@@ -159,7 +159,7 @@ class MatchView extends WatchUi.View {
     // ---- transitions ----
 
     function startMatch() as Void {
-        mMatchId = genMatchId();
+        mMatchId = MatchIds.generate();
         mMatchPresetIndex = mSetupIndex;
         MatchStore.savePresetIndex(mSetupIndex);
         mEngine = new ScoreEngine(MatchPresets.get(mSetupIndex), mMatchId);
@@ -173,12 +173,6 @@ class MatchView extends WatchUi.View {
         if (mEngine != null) {
             MatchStore.saveMatch(mEngine, mMatchPresetIndex);
         }
-    }
-
-    // Id de match : ms depuis le boot — suffit en local ; le backend
-    // l'espacera du deviceId en Phase 4a (§8.2 : id = matchId:sequence).
-    function genMatchId() as String {
-        return System.getTimer().toString();
     }
 
     // Après chaque mutation moteur : aligner l'écran sur la phase dérivée.
@@ -206,7 +200,7 @@ class MatchView extends WatchUi.View {
             mScreen = MatchScreen.SETUP;      // Changer de format (START = nouveau match)
             WatchUi.requestUpdate();
         } else if (mMenuIndex == 2) {
-            mEngine.newMatch(mEngine.getConfig(), genMatchId());   // Réinitialiser
+            mEngine.newMatch(mEngine.getConfig(), MatchIds.generate());   // Réinitialiser
             mScreen = MatchScreen.SCORE;   // sortir du menu AVANT syncScreen (garde MENU de syncScreen)
             syncScreen();                  // + sauvegarde du nouveau match
         } else {
