@@ -410,30 +410,34 @@ class MatchView extends WatchUi.View {
         dc.drawText(startX + wMe / 2, labelsTop, labelFont(h), "MOI", Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(C_GREY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(startX + wMe + digitsGap + sepW + digitsGap + wOpp / 2, labelsTop, labelFont(h), "LUI", Graphics.TEXT_JUSTIFY_CENTER);
-        drawSetDots(dc, w, dotsCenter, r);
+        // Pastilles de sets centrées sous chaque chiffre (demande utilisateur) :
+        // mes sets sous MOI, les siens sous LUI, espacées d'un rayon.
+        drawSetDots(dc, startX + wMe / 2, startX + wMe + digitsGap + sepW + digitsGap + wOpp / 2, dotsCenter, r);
         drawFooter(dc, w, h, footerText);
     }
 
-    // Pastilles de sets : mes sets à gauche (PLEIN C_ME si gagné, creux C_DIM
-    // sinon), gap central de rayon×2, les siennes à droite (PLEIN/creux C_DIM).
-    // y = centre de la rangée ; rangée centrée horizontalement.
-    function drawSetDots(dc as Dc, w as Number, y as Number, r as Number) as Void {
+    // Pastilles de sets : setsToWin pastilles par camp, groupe centré sur le
+    // chiffre correspondant (meCx / oppCx), espacement 3r. Les miennes :
+    // PLEIN C_ME si gagné, creux C_DIM sinon ; les siennes : PLEIN/creux C_DIM.
+    // y = centre de la rangée.
+    function drawSetDots(dc as Dc, meCx as Number, oppCx as Number, y as Number, r as Number) as Void {
         var setsToWin = mEngine.getConfig().mSetsToWin;
         var d = 2 * r;
-        var total = 2 * setsToWin * d + d;
-        var x = (w - total) / 2;
+        var spacing = 3 * r;                 // pastilles espacées d'un rayon
+        var groupW = (setsToWin - 1) * spacing + d;
         var setsMe = mEngine.getSetsMe();
+        var x = meCx - groupW / 2;
         for (var i = 0; i < setsToWin; i += 1) {
             dc.setColor((i < setsMe) ? C_ME : C_DIM, Graphics.COLOR_TRANSPARENT);
             if (i < setsMe) { dc.fillCircle(x + r, y, r); } else { dc.drawCircle(x + r, y, r); }
-            x += d;
+            x += spacing;
         }
-        x += d;
         var setsOpp = mEngine.getSetsOpp();
+        x = oppCx - groupW / 2;
         for (var j = 0; j < setsToWin; j += 1) {
             dc.setColor(C_DIM, Graphics.COLOR_TRANSPARENT);
             if (j < setsOpp) { dc.fillCircle(x + r, y, r); } else { dc.drawCircle(x + r, y, r); }
-            x += d;
+            x += spacing;
         }
     }
 
