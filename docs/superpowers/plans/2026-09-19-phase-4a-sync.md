@@ -234,7 +234,7 @@ import Toybox.WatchUi;
 const BACKEND_URL = "https://bzdbnptnubkkagmmxhyi.supabase.co/functions/v1/sync";
 
 class SyncTestDelegate extends WatchUi.BehaviorDelegate {
-    hidden var mResult = "SELECT = POST";
+    var mResult = "SELECT = POST";
 
     function initialize() {
         BehaviorDelegate.initialize();
@@ -245,7 +245,7 @@ class SyncTestDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    hidden function _send() as Void {
+    function _send() as Void {
         var body = {
             "deviceId" => "poc-device",
             "config" => { "targetScore" => 11, "winBy" => 2, "cap" => 0, "setsToWin" => 2 },
@@ -254,16 +254,16 @@ class SyncTestDelegate extends WatchUi.BehaviorDelegate {
             "events" => [ { "type" => 0, "arg" => 0, "sequence" => 1, "ts" => 0, "prevMe" => 0, "prevOpp" => 0 } ]
         };
         var options = {
-            "method" => Communications.HTTP_REQUEST_METHOD_POST,
-            "headers" => { "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON },
-            "responseType" => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+            :method => Communications.HTTP_REQUEST_METHOD_POST,
+            :headers => { "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON },
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
         mResult = "envoi...";
         Communications.makeWebRequest(BACKEND_URL + "/matches/POCTEST1/events", body, options, method(:_onResponse));
         WatchUi.requestUpdate();
     }
 
-    hidden function _onResponse(responseCode as Number, data as Dictionary or String or Null) as Void {
+    function _onResponse(responseCode as Number, data as Dictionary or String or Null) as Void {
         if (responseCode == 200 && data != null && data instanceof Dictionary) {
             mResult = "HTTP 200 las=" + data["lastAcceptedSequence"];
         } else {
@@ -281,7 +281,7 @@ class SyncTestDelegate extends WatchUi.BehaviorDelegate {
 }
 
 class SyncTestView extends WatchUi.View {
-    hidden var mDelegate;
+    var mDelegate;
 
     function initialize() {
         View.initialize();
@@ -881,7 +881,7 @@ module MatchIds {
         return true;
     }
 
-    hidden function _inAlphabet(c as String) as Boolean {
+    function _inAlphabet(c as String) as Boolean {
         for (var i = 0; i < 32; i += 1) {
             if (ALPHABET.substring(i, i + 1).equals(c)) { return true; }
         }
@@ -952,7 +952,7 @@ Ajouter à `SyncTest.mc` (dans le module SyncTests) :
     // ---- SyncCore ----
 
     // Fixture : engine 21 pts avec n points MOI.
-    hidden function _enginePoints(n as Number) as ScoreEngine {
+    function _enginePoints(n as Number) as ScoreEngine {
         var e = new ScoreEngine(MatchPresets.get(2), "T1");
         for (var i = 0; i < n; i += 1) { e.pointMe(); }
         return e;
@@ -1264,14 +1264,14 @@ import Toybox.Timer;
 // applicatif 30 s (le callback makeWebRequest peut ne jamais être appelé,
 // §3.8 de la spec sync), backoff 10 s → 2 min.
 class SyncService {
-    hidden var mCore;
-    hidden var mDeviceId;
-    hidden var mInFlight = false;
-    hidden var mLastAttemptMs = 0l;
-    hidden var mBackoffUntilMs = 0l;
-    hidden var mErrors = 0;
-    hidden var mEngineRef = null;      // dernier engine vu (drain / watchdog)
-    hidden var mTimer;                 // watchdog 30 s OU drain — un seul rôle à la fois
+    var mCore;
+    var mDeviceId;
+    var mInFlight = false;
+    var mLastAttemptMs = 0l;
+    var mBackoffUntilMs = 0l;
+    var mErrors = 0;
+    var mEngineRef = null;      // dernier engine vu (drain / watchdog)
+    var mTimer;                 // watchdog 30 s OU drain — un seul rôle à la fois
 
     function initialize(deviceId as String) {
         mCore = new SyncCore();
@@ -1294,15 +1294,15 @@ class SyncService {
         _send(url, key, engine, batch);
     }
 
-    hidden function _send(url as String, key as String, engine as ScoreEngine, batch as Array) as Void {
+    function _send(url as String, key as String, engine as ScoreEngine, batch as Array) as Void {
         mInFlight = true;
         mLastAttemptMs = System.getTimer();
         var fullUrl = url + "/matches/" + engine.getMatchId() + "/events";
         var body = mCore.buildBody(engine, mDeviceId, batch);
         var options = {
-            "method" => Communications.HTTP_REQUEST_METHOD_POST,
-            "headers" => { "X-Device-Key" => key, "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON },
-            "responseType" => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+            :method => Communications.HTTP_REQUEST_METHOD_POST,
+            :headers => { "X-Device-Key" => key, "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON },
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
         mTimer.stop();
         mTimer.start(method(:_onTimeout), 30000, false);
@@ -1310,7 +1310,7 @@ class SyncService {
         System.println("[sync] envoi seq<=" + batch[batch.size() - 1][2] + " via " + fullUrl);
     }
 
-    hidden function _onResponse(responseCode as Number, data as Dictionary or String or Null) as Void {
+    function _onResponse(responseCode as Number, data as Dictionary or String or Null) as Void {
         mTimer.stop();
         mInFlight = false;
         if (responseCode == 200) {
@@ -1329,7 +1329,7 @@ class SyncService {
     }
 
     // Le callback peut ne jamais être appelé (GCM endormie) — §3.8.
-    hidden function _onTimeout() as Void {
+    function _onTimeout() as Void {
         if (mInFlight) {
             Communications.cancelAllRequests();
             _onResponse(Communications.NETWORK_REQUEST_TIMED_OUT, null);
@@ -1337,7 +1337,7 @@ class SyncService {
     }
 
     // File non vide → re-tenter au prochain créneau (≥ 5 s / backoff).
-    hidden function _scheduleDrain() as Void {
+    function _scheduleDrain() as Void {
         var engine = mEngineRef;
         if (engine == null) { return; }
         var batch = mCore.batchSlice(engine.getEvents(), MatchStore.getPendingFrom(), 5);
@@ -1350,7 +1350,7 @@ class SyncService {
         mTimer.start(method(:_drain), delay, false);
     }
 
-    hidden function _drain() as Void {
+    function _drain() as Void {
         trigger(mEngineRef);
     }
 }
@@ -1384,7 +1384,7 @@ Puis, juste après le bloc permissions (dans `<iq:application>`), ajouter :
 - [ ] **Step 3: Câblage MatchView**
 
 Dans `watch/connect-iq/source/ui/MatchView.mc` :
-1. Champ : ajouter `hidden var mSync;` près des autres champs.
+1. Champ : ajouter `var mSync;` près des autres champs.
 2. `initialize()` : après la création de `mEngine`/restore et avant le `syncScreen()` final, ajouter :
    `mSync = new SyncService(DeviceId.getOrCreate());`
 3. `syncScreen()` : juste après `MatchStore.saveMatch(mEngine, mMatchPresetIndex);` (ligne ~187), ajouter :
