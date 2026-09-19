@@ -11,3 +11,4 @@ supabase/.branches/
 supabase/.branches
 .secrets/
 prototypes/sync-test/sideload/
+watch/connect-iq/sideload/
