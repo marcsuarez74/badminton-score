@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Badminton — 3 directions visuelles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Saira:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0a;
+    --watch:#000;
+    --white:#ffffff;
+    --grey:#8b939b;
+    --green:#17a05e;      /* vert court BWF */
+    --green-garmin:#2fe05c;
+    --yellow:#ffd23f;     /* plume de volant */
+    --row: 360px;         /* diamètre montre */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:#c9ced3;font-family:'Saira',sans-serif;padding:32px 40px 64px}
+  h1{font-family:'Saira Condensed';font-weight:800;font-size:26px;color:#fff;letter-spacing:.5px}
+  p.intro{max-width:70ch;margin:6px 0 36px;font-size:15px;color:#9aa0a6}
+  .dir{display:flex;align-items:flex-start;gap:28px;margin-bottom:56px}
+  .dirinfo{width:290px;flex:none;padding-top:18px}
+  .dirinfo .tag{font-family:'Saira Condensed';font-weight:700;font-size:22px;color:#fff}
+  .dirinfo p{font-size:13.5px;line-height:1.5;color:#9aa0a6;margin-top:8px}
+  .dirinfo .swatches{display:flex;gap:6px;margin-top:14px}
+  .sw{width:26px;height:26px;border-radius:6px;border:1px solid rgba(255,255,255,.15)}
+  .watches{display:flex;gap:34px}
+  .watch{
+    width:var(--row);height:var(--row);border-radius:50%;
+    background:var(--watch);flex:none;position:relative;overflow:hidden;
+    outline:1px solid #26292c;
+  }
+  .caption{width:var(--row);text-align:center;font-size:12.5px;color:#6f757b;margin-top:10px}
+
+  /* ============ DIRECTION A — TERRAIN ============ */
+  .a .half-top{position:absolute;left:0;right:0;top:0;height:46%;display:flex;align-items:center;justify-content:center;padding-top:18px}
+  .a .half-bot{position:absolute;left:0;right:0;bottom:0;height:46%;display:flex;align-items:center;justify-content:center;padding-bottom:40px}
+  .a .net{position:absolute;left:12%;right:12%;top:50%;height:3px;background:var(--white)}
+  .a .net::before,.a .net::after{content:"";position:absolute;top:-3.5px;width:9px;height:10px;background:var(--white)}
+  .a .net::before{left:-2px}.a .net::after{right:-2px}
+  .a .opp{font-family:'Saira Condensed';font-weight:700;font-size:60px;color:var(--grey);line-height:1}
+  .a .me{font-family:'Saira Condensed';font-weight:800;font-size:100px;color:var(--white);line-height:.9}
+  .a .me.is-lead{color:var(--green)}
+  .a .serve{position:absolute;width:14px;height:14px;border-radius:50%;background:var(--yellow);box-shadow:0 0 0 4px rgba(255,210,63,.18)}
+  .a .serve.top{top:calc(50% - 7px - 64px);right:44px}
+  .a .serve.bot{bottom:calc(50% - 7px - 64px);right:44px}
+  .a .setline{position:absolute;left:0;right:0;bottom:20px;display:flex;justify-content:center;gap:8px}
+  .a .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--grey)}
+  .a .dot.won{background:var(--green);border-color:var(--green)}
+  .a .dot.lost{background:var(--grey);border-color:var(--grey)}
+  .a .setlabel{position:absolute;top:16px;left:0;right:0;text-align:center;font-family:'Saira Condensed';font-weight:600;font-size:16px;letter-spacing:2px;color:var(--grey)}
+  /* A — set result */
+  .a2{background:linear-gradient(0deg,#04140c,#000)}
+  .a2 .bigset{position:absolute;left:0;right:0;top:24%;text-align:center;font-family:'Saira Condensed';font-weight:800;font-size:52px;color:var(--white);line-height:1}
+  .a2 .sub{position:absolute;left:0;right:0;top:44%;text-align:center}
+  .a2 .sub .n{font-family:'Saira Condensed';font-weight:800;font-size:104px;color:var(--green);line-height:1}
+  .a2 .sub .l{font-family:'Saira Condensed';font-weight:600;font-size:18px;letter-spacing:3px;color:var(--grey)}
+  .a2 .next{position:absolute;left:0;right:0;bottom:42px;text-align:center;font-size:15px;color:var(--yellow)}
+  /* A — menu */
+  .a3 .menu{position:absolute;inset:0;padding:36px 52px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+  .a3 .mi{font-family:'Saira Condensed';font-weight:700;font-size:26px;color:var(--grey);padding:9px 14px;border-radius:12px}
+  .a3 .mi.sel{background:var(--green);color:#03140b}
+  /* ============ DIRECTION B — GARMIN NATIF ============ */
+  .b .top{position:absolute;top:32px;left:0;right:0;text-align:center;font-family:'Saira Condensed';font-weight:600;font-size:19px;letter-spacing:3px;color:var(--grey)}
+  .b .score{position:absolute;top:50%;left:0;right:0;transform:translateY(-68%);display:flex;justify-content:center;align-items:center;gap:20px}
+  .b .n-me{font-family:'Saira Condensed';font-weight:800;font-size:118px;color:var(--green-garmin);line-height:.85}
+  .b .n-op{font-family:'Saira Condensed';font-weight:700;font-size:118px;color:var(--white);line-height:.85;opacity:.85}
+  .b .sep{width:4px;height:84px;background:#2a2e32}
+  .b .who{position:absolute;top:calc(50% + 42px);left:0;right:0;display:flex;justify-content:center;gap:88px;font-family:'Saira Condensed';font-weight:600;font-size:15px;letter-spacing:2.5px}
+  .b .who .m{color:var(--green-garmin)} .b .who .l{color:var(--grey)}
+  .b .sets{position:absolute;top:calc(50% + 78px);left:0;right:0;display:flex;justify-content:center;gap:10px}
+  .b .sd{width:12px;height:12px;border-radius:50%;background:#22262a}
+  .b .sd.me{background:var(--green-garmin)} .b .sd.op{background:#5b6167}
+  .b .hint{position:absolute;bottom:46px;left:0;right:0;text-align:center;font-size:14px;color:#5b6167}
+  /* B — set result */
+  .b2 .banner{position:absolute;top:0;left:0;right:0;height:30%;background:#0d2417;display:flex;align-items:center;justify-content:center}
+  .b2 .banner span{font-family:'Saira Condensed';font-weight:700;font-size:28px;letter-spacing:3px;color:var(--green-garmin)}
+  .b2 .score2{position:absolute;top:39%;left:0;right:0;text-align:center;font-family:'Saira Condensed';font-weight:800;font-size:120px;color:#fff;line-height:.9}
+  .b2 .setsline{position:absolute;bottom:76px;left:0;right:0;text-align:center;font-family:'Saira Condensed';font-weight:600;font-size:22px;letter-spacing:2px;color:var(--grey)}
+  .b2 .setsline b{color:var(--white)}
+  .b2 .hint{position:absolute;bottom:40px;left:0;right:0;text-align:center;font-size:14px;color:#5b6167}
+  /* B — menu */
+  .b3 .rows{position:absolute;inset:0;padding:26px 36px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+  .b3 .r{display:flex;align-items:center;gap:14px;padding:9px 16px;border-radius:14px;font-family:'Saira Condensed';font-weight:700;font-size:23px;color:var(--grey)}
+  .b3 .r.sel{background:#12291a;color:var(--green-garmin)}
+  .b3 .r.sel .k{color:var(--green-garmin)}
+  .b3 .k{font-family:'Saira';font-weight:600;font-size:12px;width:42px;height:24px;border:1.5px solid #2a2e32;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;color:#5b6167;flex:none}
+  /* ============ DIRECTION C — TYPO BRUT ============ */
+  .c{display:flex;align-items:center;justify-content:center}
+  .c .stack{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .c .tiny{font-family:'Saira Condensed';font-weight:600;font-size:16px;letter-spacing:5px;color:var(--grey);margin-bottom:16px}
+  .c .huge{font-family:'Saira Condensed';font-weight:800;font-size:110px;color:var(--white);line-height:.9;letter-spacing:-2px}
+  .c .huge .me-c{color:var(--white)}
+  .c .bars{display:flex;gap:12px;margin-top:30px;align-items:center}
+  .c .bar{height:8px;width:44px;border-radius:4px;background:#22262a}
+  .c .bar.m{background:var(--white)}
+  .c .bar.l{background:#5b6167}
+  .c .sv{position:absolute;top:52px;right:78px;width:12px;height:12px;border-radius:50%;background:var(--yellow)}
+  /* C — set result (inversion plein écran) */
+  .c2{background:var(--white)}
+  .c2 .tiny{color:#3c4043}
+  .c2 .huge{color:#000;font-size:104px}
+  .c2 .bars .bar{background:#c9ced3}
+  .c2 .bar.m{background:#000}
+  .c2 .next{position:absolute;bottom:34px;left:0;right:0;text-align:center;font-family:'Saira Condensed';font-weight:700;font-size:19px;letter-spacing:2px;color:#000}
+  /* C — menu */
+  .c3{flex-direction:column}
+  .c3 .stack{gap:2px}
+  .c3 .mi{font-family:'Saira Condensed';font-weight:800;font-size:34px;color:#3c4043;line-height:1.25;letter-spacing:1px}
+  .c3 .mi.sel{color:var(--white);text-decoration:underline;text-decoration-color:var(--yellow);text-decoration-thickness:6px;text-underline-offset:8px}
+  .c3 .k{font-size:13px;font-family:'Saira';color:#5b6167;margin-top:14px}
+</style>
+</head>
+<body>
+<h1>Badminton — 3 directions pour l'écran de la montre</h1>
+<p class="intro">Contenu réel de l'app (SCORE / SET TERMINÉ / MENU) sur epix (rond AMOLED). Le serveur est marqué d'une pastille ; MOI est toujours la couleur d'identité, LUI reste neutre.</p>
+
+<!-- ================= DIRECTION A ================= -->
+<div class="dir">
+  <div class="dirinfo">
+    <div class="tag">A — Terrain</div>
+    <p>La montre devient le terrain vu depuis ma ligne : lui en haut, moi en bas, filet blanc au centre. Pastille jaune = service. Mon score s'affiche en vert quand je mène.</p>
+    <div class="swatches">
+      <div class="sw" style="background:#000"></div>
+      <div class="sw" style="background:#17a05e"></div>
+      <div class="sw" style="background:#ffd23f"></div>
+      <div class="sw" style="background:#8b939b"></div>
+      <div class="sw" style="background:#fff"></div>
+    </div>
+  </div>
+  <div class="watches">
+    <div>
+      <div class="watch a">
+        <div class="setlabel">SET 2</div>
+        <div class="serve top"></div>
+        <div class="half-top"><div class="opp">19</div></div>
+        <div class="net"></div>
+        <div class="half-bot"><div class="me is-lead">21</div></div>
+        <div class="setline"><div class="dot won"></div><div class="dot lost"></div><div class="dot"></div></div>
+      </div>
+      <div class="caption">SCORE — je sers, je mène</div>
+    </div>
+    <div>
+      <div class="watch a a2">
+        <div class="bigset">SET 1 TERMINÉ</div>
+        <div class="sub"><div class="n">21-19</div></div>
+        <div class="next">SET 2 ?</div>
+      </div>
+      <div class="caption">SET_RESULT</div>
+    </div>
+    <div>
+      <div class="watch a a3">
+        <div class="menu">
+          <div class="mi">REPRENDRE</div>
+          <div class="mi sel">FORMAT</div>
+          <div class="mi">RESET</div>
+          <div class="mi">QUITTER</div>
+        </div>
+      </div>
+      <div class="caption">MENU</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DIRECTION B ================= -->
+<div class="dir">
+  <div class="dirinfo">
+    <div class="tag">B — Garmin natif</div>
+    <p>La grammaire des apps sport Garmin : un label, deux gros chiffres type DIN, points de sets en dessous, aide en bas. Mon chiffre en vert Garmin, le sien en blanc.</p>
+    <div class="swatches">
+      <div class="sw" style="background:#000"></div>
+      <div class="sw" style="background:#2fe05c"></div>
+      <div class="sw" style="background:#5b6167"></div>
+      <div class="sw" style="background:#fff"></div>
+    </div>
+  </div>
+  <div class="watches">
+    <div>
+      <div class="watch b">
+        <div class="top">SET 2</div>
+        <div class="score"><div class="n-me">21</div><div class="sep"></div><div class="n-op">19</div></div>
+        <div class="who"><span class="m">MOI</span><span class="l">LUI</span></div>
+        <div class="sets"><div class="sd me"></div><div class="sd op"></div><div class="sd"></div></div>
+        <div class="hint">UP = point</div>
+      </div>
+      <div class="caption">SCORE</div>
+    </div>
+    <div>
+      <div class="watch b b2">
+        <div class="banner"><span>SET 1 TERMINÉ</span></div>
+        <div class="score2">21-19</div>
+        <div class="setsline">SETS <b>1-0</b></div>
+        <div class="hint">DOWN = valider</div>
+      </div>
+      <div class="caption">SET_RESULT</div>
+    </div>
+    <div>
+      <div class="watch b b3">
+        <div class="rows">
+          <div class="r"><span class="k">START</span>REPRENDRE</div>
+          <div class="r sel"><span class="k">START</span>FORMAT</div>
+          <div class="r"><span class="k">START</span>RESET</div>
+          <div class="r"><span class="k">START</span>QUITTER</div>
+        </div>
+      </div>
+      <div class="caption">MENU</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DIRECTION C ================= -->
+<div class="dir">
+  <div class="dirinfo">
+    <div class="tag">C — Typographique brut</div>
+    <p>Le score est l'écran. Rien d'autre. Aux changements de phase, inversion plein écran noir→blanc : impossible de rater un set terminé, même en plein effort.</p>
+    <div class="swatches">
+      <div class="sw" style="background:#000"></div>
+      <div class="sw" style="background:#fff"></div>
+      <div class="sw" style="background:#ffd23f"></div>
+    </div>
+  </div>
+  <div class="watches">
+    <div>
+      <div class="watch c">
+        <div class="sv"></div>
+        <div class="stack">
+          <div class="tiny">SET 2</div>
+          <div class="huge">21<span style="color:#5b6167;font-size:64%">·</span>19</div>
+          <div class="bars"><div class="bar m"></div><div class="bar l"></div><div class="bar"></div></div>
+        </div>
+      </div>
+      <div class="caption">SCORE</div>
+    </div>
+    <div>
+      <div class="watch c c2">
+        <div class="stack">
+          <div class="tiny">SET 1 TERMINÉ</div>
+          <div class="huge">21<span style="font-size:64%">·</span>19</div>
+          <div class="bars"><div class="bar m"></div><div class="bar l"></div><div class="bar"></div></div>
+        </div>
+        <div class="next">DOWN → SET 2</div>
+      </div>
+      <div class="caption">SET_RESULT — inversion</div>
+    </div>
+    <div>
+      <div class="watch c c3">
+        <div class="stack">
+          <div class="mi">REPRENDRE</div>
+          <div class="mi sel">FORMAT</div>
+          <div class="mi">RESET</div>
+          <div class="mi">QUITTER</div>
+          <div class="k">START pour choisir</div>
+        </div>
+      </div>
+      <div class="caption">MENU</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
