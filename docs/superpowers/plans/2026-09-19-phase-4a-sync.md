@@ -430,6 +430,8 @@ alter table match_state enable row level security;
 create policy "public read matches"     on matches     for select to anon using (true);
 create policy "public read events"      on events      for select to anon using (true);
 create policy "public read state"       on match_state for select to anon using (true);
+revoke all on devices from anon, authenticated;
+alter table devices enable row level security;
 
 drop table if exists poc_events;
 
@@ -461,8 +463,11 @@ curl -s "https://bzdbnptnubkkagmmxhyi.supabase.co/rest/v1/match_state?select=*" 
 # écriture anonyme : doit être refusée (401/403/404 postgrest)
 curl -s -o /dev/null -w "%{http_code}\n" -X POST "https://bzdbnptnubkkagmmxhyi.supabase.co/rest/v1/match_state" \
   -H "apikey: $ANON_KEY" -H "Content-Type: application/json" -H "Prefer: return=minimal" -d '{}'
+# devices : écriture anonyme refusée (40x — deny-all, RLS sans policy)
+curl -s -o /dev/null -w "%{http_code}\n" -X POST "https://bzdbnptnubkkagmmxhyi.supabase.co/rest/v1/devices" \
+  -H "apikey: $ANON_KEY" -H "Content-Type: application/json" -H "Prefer: return=minimal" -d '{}'
 ```
-Expected: premier curl → `[]` ; deuxième → code `401`/`403` (pas 201). Si le format de sortie du CLI diffère, récupérer l'anon key dans le dashboard (Settings > API) — **[USER ACTION]**.
+Expected: premier curl → `[]` ; deuxième → code `401`/`403` (pas 201) ; troisième (devices) → code `40x` (4xx — écriture refusée). Si le format de sortie du CLI diffère, récupérer l'anon key dans le dashboard (Settings > API) — **[USER ACTION]**.
 
 - [ ] **Step 6: Commit**
 

@@ -289,7 +289,7 @@ create table matches (
   channel    text not null default 'marc',    -- chaîne Twitch (un seul streameur)
   config     jsonb not null,                  -- {targetScore, winBy, cap, setsToWin, labels?}
   status     text not null default 'active',  -- active | finished | archived
-  started_at timestamptz,                     -- déclarée par la montre (1er batch), optionnelle
+  started_at bigint,                          -- timer de la montre (ms), déclarée au 1er batch, optionnelle
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -320,7 +320,7 @@ create table match_state (                    -- snapshot fourni par la montre (
 );
 
 create table devices (
-  device_id        text primary key,          -- UUID d'installation
+  id               smallint primary key default 1,
   device_key_hash  text not null,             -- sha256(device secret)
   label            text,
   created_at       timestamptz not null default now()
@@ -335,6 +335,8 @@ alter table match_state enable row level security;
 create policy "public read matches"     on matches     for select to anon using (true);
 create policy "public read events"      on events      for select to anon using (true);
 create policy "public read state"       on match_state for select to anon using (true);
+revoke all on devices from anon, authenticated;  -- deny-all : RLS sans policy
+alter table devices enable row level security;   -- service_role seul chemin d'écriture
 
 -- Realtime
 alter publication supabase_realtime add table matches, events, match_state;
