@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleChatAnnounce, type AnnounceDb, type ChannelCfg, type ChatSender, type ScoreRow } from "./handler.ts";
+import { handleChatAnnounce, type AnnounceDb, type ChannelCfg, type ScoreRow } from "./handler.ts";
+import { makeSeSender } from "../_shared/announce.ts";
 import type { Db as ScoreDb } from "../score-text/handler.ts";
 
 // Service role : la fonction lit devices (se_channel_id, noms) et écrit
@@ -62,22 +63,6 @@ const db: AnnounceDb = {
   },
 };
 
-// API StreamElements — envoi d'un message chat en tant que bot du compte.
-// POST https://api.streamelements.com/kappa/v2/chat/{channelId}
-// Authorization: Bearer <JWT> ; body {"message": "..."}.
-const sender: ChatSender = {
-  async send(seChannelId, message) {
-    const jwt = Deno.env.get("SE_JWT");
-    if (!jwt) throw new Error("SE_JWT missing");
-    const res = await fetch(`https://api.streamelements.com/kappa/v2/chat/${seChannelId}`, {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${jwt}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-    if (!res.ok) throw new Error(`SE ${res.status}`);
-  },
-};
-
 const env = { announceKey: Deno.env.get("CHAT_ANNOUNCE_KEY") ?? undefined };
 
-Deno.serve((req: Request) => handleChatAnnounce(req, db, sender, env));
+Deno.serve((req: Request) => handleChatAnnounce(req, db, makeSeSender(), env));

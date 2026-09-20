@@ -1,6 +1,12 @@
 // Edge Function sync — logique pure testable (Db injecté). Le backend ne
 // calcule JAMAIS le score : il valide la forme, authentifie la device key et
 // upsert de façon idempotente (ADR-007, spec sync §5/§11/§13).
+// Bonus event-driven : après un upsert réussi, si un sender StreamElements
+// est fourni, annonce le nouveau score dans le chat si le texte a changé
+// (latence = délai de sync de la montre, ~5 s). L'échec de l'annonce
+// n'échoue JAMAIS la sync.
+import { maybeAnnounce, type Announcer, type AnnounceState } from "../_shared/announce.ts";
+
 export interface Db {
   // Auth multi-device : le handler hash la clé du header et cherche la ligne
   // correspondante dans `devices`. Le canal (overlay/bot) appartient au device.
@@ -13,6 +19,10 @@ export interface Db {
   finishOtherActiveMatches(deviceId: string, matchId: string): Promise<{ error: string | null }>;
   upsertEvents(matchId: string, events: Record<string, unknown>[]): Promise<{ error: string | null }>;
   upsertState(matchId: string, snapshot: Record<string, unknown>, config: Record<string, unknown>): Promise<{ error: string | null }>;
+  // Annonce chat (StreamElements) : config du canal + dédoublonnage.
+  getAnnounceCfg(channel: string): Promise<{ seChannelId: string | null; name1: string; name2: string } | null>;
+  lastAnnounced(channel: string): Promise<string | null>;
+  saveAnnounced(channel: string, text: string): Promise<void>;
 }
 
 export function json(status: number, payload: unknown): Response {
@@ -70,7 +80,7 @@ export function validateBody(body: unknown): Validated {
   return { ok: true, deviceId: b.deviceId, config: b.config as Record<string, unknown>, snapshot: b.snapshot as Record<string, unknown>, events: b.events as Record<string, unknown>[], startedAt };
 }
 
-export async function handleSync(req: Request, db: Db): Promise<Response> {
+export async function handleSync(req: Request, db: Db, sender?: Announcer): Promise<Response> {
   if (req.method !== "POST") return json(405, { error: "method" });
   const m = new URL(req.url).pathname.match(/\/matches\/([A-Za-z0-9_-]+)\/events$/);
   if (!m) return json(404, { error: "route" });
@@ -100,6 +110,22 @@ export async function handleSync(req: Request, db: Db): Promise<Response> {
   if (ev.error) return json(500, { error: ev.error });
   const st = await db.upsertState(matchId, v.snapshot, v.config);
   if (st.error) return json(500, { error: st.error });
+  if (sender) {
+    // Annonce chat event-driven : jamais bloquante pour la sync.
+    try {
+      const cfg = await db.getAnnounceCfg(dev.channel);
+      const state: AnnounceState = { lastAnnounced: db.lastAnnounced, saveAnnounced: db.saveAnnounced };
+      await maybeAnnounce(dev.channel, cfg, {
+        status: String(v.snapshot.status),
+        currentSet: Number(v.snapshot.currentSet),
+        scoreMe: Number(v.snapshot.scoreMe),
+        scoreOpp: Number(v.snapshot.scoreOpp),
+        setsMe: Number(v.snapshot.setsMe),
+        setsOpp: Number(v.snapshot.setsOpp),
+        config: null,
+      }, state, sender);
+    } catch { /* l'annonce ne doit jamais casser la sync */ }
+  }
   const last = Math.max(...v.events.map((e) => e.sequence as number));
   return json(200, { matchId, lastAcceptedSequence: last });
 }
