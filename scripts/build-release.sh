@@ -3,14 +3,24 @@
 # du bug GCM 5.29 : la page Réglages d'une app CIQ sideloadée reboot la
 # montre — cf. docs/superpowers/notes/phase-4a-sync-results.md).
 #
-# Usage : scripts/build-release.sh
-# Prérequis : .secrets/phase-4a.env (SUPABASE_URL, DEVICE_KEY),
+# Usage : scripts/build-release.sh                 (builds marc : epix + fr55)
+#         FRIEND=1 scripts/build-release.sh        (build ami : fr55 seulement)
+# Prérequis : .secrets/phase-4a.env (SUPABASE_URL, DEVICE_KEY) — ou
+#             .secrets/phase-4a-friend.env en mode FRIEND=1,
 #             SDK Connect IQ installé, clé ~/keys/developer_key.der
 #             (surchargeable : DEV_KEY_PATH=... scripts/build-release.sh)
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-SECRETS="$REPO/.secrets/phase-4a.env"
+if [ "${FRIEND:-0}" = "1" ]; then
+    SECRETS="$REPO/.secrets/phase-4a-friend.env"
+    SUFFIX="-ami"
+    DEVICES="fr55"
+else
+    SECRETS="$REPO/.secrets/phase-4a.env"
+    SUFFIX=""
+    DEVICES="epix2pro51mm fr55"
+fi
 if [ ! -f "$SECRETS" ]; then
     echo "Erreur : $SECRETS absent (voir docs/superpowers/plans/2026-09-19-phase-4a-sync.md Task 4)" >&2
     exit 1
@@ -40,9 +50,9 @@ EOF
 
 OUT="$REPO/watch/connect-iq/sideload"
 mkdir -p "$OUT"
-for DEV in epix2pro51mm fr55; do
+for DEV in $DEVICES; do
     "$SDK/bin/monkeyc" -d "$DEV" -f "$TMP/app/monkey.jungle" \
-        -o "$OUT/badmintonscore-$DEV.prg" -y "$KEY_PATH" -w -r
-    echo "OK : $OUT/badmintonscore-$DEV.prg"
+        -o "$OUT/badmintonscore-$DEV$SUFFIX.prg" -y "$KEY_PATH" -w -r
+    echo "OK : $OUT/badmintonscore-$DEV$SUFFIX.prg"
 done
 echo "Prêt à sideloader : copie le .prg dans GARMIN/Apps/ de la montre."
