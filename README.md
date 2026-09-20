@@ -55,6 +55,19 @@ Paramètres d'URL :
 | `scale` | `1` | taille globale de la barre |
 | `bg` | `1` | `bg=0` : sans fond, texte avec halo |
 
+### Latence de la sync
+
+La montre envoie les points **par batchs** (≤ 5 points, **≥ 5 s entre deux
+envois**) — une contrainte du lien Bluetooth de la montre (débit partagé avec
+GCM, batterie). Conséquence : si vous marquez plusieurs points en rafale,
+l'overlay les suit par paliers de 5 à 10 s. Dans un vrai match (un rallye
+toutes les 10-30 s), chaque point arrive en **1 à 3 s**. Une fois la donnée
+dans le cloud, l'overlay l'affiche en <1,5 s.
+
+Sur l'écran score de la montre, un **point en haut à droite** indique l'état
+de la sync : vert = synchro OK · gris = envoi en cours · rouge = erreur
+(reprise automatique) · sombre = sync non configurée.
+
 ## Architecture
 
 - **Montre** — `watch/connect-iq/` (Monkey C) : moteur de score local, UI, sync HTTP.
