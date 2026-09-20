@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BadScore overlay</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* Scorebug compact (phase 5) — discret sur la vidéo : barre sombre
+     translucide, points de couleur par camp, chiffres blancs. */
+  :root {
+    --team1: #2FE05C;   /* vert BadScore — camp 1 */
+    --team2: #E5484D;   /* rouge — camp 2 */
+    --txt: #FFFFFF;
+    --muted: rgba(255, 255, 255, 0.52);
+    --scale: 1;
+  }
+  html, body {
+    margin: 0; padding: 0; background: transparent;
+    overflow: hidden; user-select: none;
+    font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  }
+  #wrap { display: flex; justify-content: center; padding: 12px; transform: scale(var(--scale)); transform-origin: top center; }
+  #bug {
+    display: none;                       /* masqué tant qu'aucun match n'est trouvé */
+    align-items: center;
+    background: rgba(10, 12, 14, 0.66);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(8, 10, 12, 0.35);
+    padding: 9px 18px;
+    color: var(--txt);
+    animation: arrive 0.4s ease-out;
+  }
+  @keyframes arrive { from { opacity: 0; transform: translateY(-6px); } }
+  @media (prefers-reduced-motion: reduce) { #bug { animation: none; } }
+
+  .team { display: flex; align-items: center; min-width: 0; }
+  .tcol { display: flex; flex-direction: column; gap: 3px; }
+  .name {
+    font-size: 23px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    line-height: 1; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pips { display: flex; gap: 5px; }
+  .pip { width: 8px; height: 8px; border-radius: 2px; border: 1px solid rgba(255, 255, 255, 0.35); }
+  .team.me .pip.won  { background: var(--team1); border-color: var(--team1); }
+  .team.opp .pip.won { background: var(--team2); border-color: var(--team2); }
+
+  .mid { display: flex; align-items: baseline; padding: 0 20px; }
+  .pts {
+    font-size: 54px; font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums; min-width: 46px; text-align: center;
+  }
+  .colon { font-size: 40px; font-weight: 600; color: var(--muted); padding: 0 8px; }
+  .pts.tick { animation: tick 0.3s ease-out; }
+  @keyframes tick { 30% { transform: translateY(-4px) scale(1.05); } }
+  @media (prefers-reduced-motion: reduce) { .pts.tick { animation: none; } }
+
+  .sep { width: 1px; align-self: stretch; margin: 2px 16px; background: rgba(255, 255, 255, 0.12); }
+  .team.opp { margin-left: 0; }
+  .setlab {
+    font-size: 16px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted);
+  }
+  #empty {
+    display: none; font-size: 20px; font-weight: 600; letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.75); background: rgba(10, 12, 14, 0.55);
+    border-radius: 10px; padding: 12px 22px;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="bug">
+    <div class="team me">
+      <div class="tcol">
+        <div class="name" id="n1">MOI</div>
+        <div class="pips" id="d1"></div>
+      </div>
+    </div>
+    <div class="mid">
+      <div class="pts" id="p1">0</div>
+      <div class="colon">:</div>
+      <div class="pts" id="p2">0</div>
+    </div>
+    <div class="team opp">
+      <div class="tcol">
+        <div class="name" id="n2">LUI</div>
+        <div class="pips" id="d2"></div>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div class="setlab" id="setlab">SET 1</div>
+  </div>
+  <div id="empty">EN ATTENTE DE MATCH</div>
+</div>
+<script>
+  // BadScore overlay — lecture seule, zéro manipulation (plan phase 5).
+  // Choix du match : le plus récent ACTIF du canal ; sinon le plus récent
+  // (final reste affiché). Bascule automatique à chaque INSERT de match.
+  const SUPABASE_URL = "https://bzdbnptnubkkagmmxhyi.supabase.co";
+  const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6ZGJucHRudWJra2FnbW14aHlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3Nzk5MDAsImV4cCI6MjEwNTM1NTkwMH0._g_LV07W42GlOijx-XptJBJwBrfSgbcAm8StEWxqge0";
+  const q = new URLSearchParams(location.search);
+  const CHANNEL = q.get("channel") || "marc";
+  const SCALE = parseFloat(q.get("scale") || "1");
+  const SHOW_PANELS = q.get("bg") !== "0";
+  const NAME1 = q.get("name1") || "MOI";
+  const NAME2 = q.get("name2") || "LUI";
+
+  const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+  document.getElementById("n1").textContent = NAME1;
+  document.getElementById("n2").textContent = NAME2;
+  if (!SHOW_PANELS) {
+    const bug = document.getElementById("bug");
+    bug.style.background = "transparent";
+    bug.style.borderColor = "transparent";
+    bug.style.boxShadow = "none";
+    const se = document.querySelector(".sep");
+    se.style.background = "rgba(255, 255, 255, 0.25)";
+    document.querySelectorAll(".name, .pts, .setlab").forEach(el => {
+      el.style.textShadow = "0 2px 8px rgba(0, 0, 0, 0.8)";
+    });
+  }
+  if (SCALE !== 1) document.documentElement.style.setProperty("--scale", SCALE);
+
+  function pips(el, won, setsToWin) {
+    const total = Math.max(2, setsToWin);
+    el.innerHTML = "";
+    for (let i = 0; i < total; i++) {
+      const p = document.createElement("div");
+      p.className = "pip" + (won > i ? " won" : "");
+      p.dataset.won = won > i ? "1" : "0";
+      el.appendChild(p);
+    }
+  }
+
+  function tick(id, value) {
+    const el = document.getElementById(id);
+    if (el.textContent !== String(value)) {
+      el.textContent = value;
+      el.classList.remove("tick");
+      void el.offsetWidth;                    // relance l'animation
+      el.classList.add("tick");
+    }
+  }
+
+  function render(row) {
+    document.getElementById("bug").style.display = "flex";
+    document.getElementById("empty").style.display = "none";
+    tick("p1", row.score_me);
+    tick("p2", row.score_opp);
+    const stw = (row.config && row.config.setsToWin) || 2;
+    pips(document.getElementById("d1"), row.sets_me, stw);
+    pips(document.getElementById("d2"), row.sets_opp, stw);
+    document.getElementById("setlab").textContent = "SET " + row.current_set;
+  }
+
+  async function pick() {
+    // Actif le plus récent, sinon le plus récent tout statut. On requête
+    // `matches` (parent) pour que le ORDER BY porte sur matches.started_at.
+    for (const onlyActive of [true, false]) {
+      let req = sb.from("matches")
+        .select("started_at, match_state!inner(status, current_set, score_me, score_opp, sets_me, sets_opp, config)")
+        .eq("channel", CHANNEL)
+        .order("started_at", { ascending: false, nullsFirst: false })
+        .limit(1);
+      if (onlyActive) req = req.eq("match_state.status", "active");
+      const { data } = await req;
+      if (data && data.length) { render(data[0].match_state); return; }
+    }
+    document.getElementById("bug").style.display = "none";
+    document.getElementById("empty").style.display = "block";
+  }
+
+  sb.channel("badscore-ov-" + CHANNEL)
+    .on("postgres_changes", { event: "*", schema: "public", table: "match_state" }, pick)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "matches" }, pick)
+    .subscribe();
+
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pick(); });
+  pick();
+</script>
+</body>
+</html>
