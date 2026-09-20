@@ -22,6 +22,11 @@ const db: Db = {
     );
     return { error: error ? error.message : null };
   },
+  async finishOtherActiveMatches(deviceId, matchId) {
+    const { error } = await supabase.from("matches").update({ status: "finished" })
+      .eq("device_id", deviceId).eq("status", "active").neq("match_id", matchId);
+    return { error: error ? error.message : null };
+  },
   async upsertEvents(matchId, events) {
     const rows = events.map((e) => ({
       id: `${matchId}:${e.sequence}`,
