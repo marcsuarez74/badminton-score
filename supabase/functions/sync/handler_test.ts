@@ -3,13 +3,19 @@ import { handleSync, sha256Hex, type Db, type Validated } from "./handler.ts";
 
 const URL_MATCH = "https://fn.test/functions/v1/sync/matches/B7K2QM9X/events";
 
-function makeDb(opts: { deviceHash: string | null; ownerDeviceId?: string | null } = { deviceHash: null }): Db {
+function makeDb(opts: { devices?: { hash: string; channel: string }[]; ownerDeviceId?: string | null } = {}): Db {
   const events = new Map<string, Record<string, unknown>>();
+  const devices = opts.devices ?? [];
   let matchDevice: string | null = opts.ownerDeviceId ?? null;
+  let matchChannel: string | null = null;
   return {
-    async getDeviceHash() { return { hash: opts.deviceHash, error: null }; },
+    async getDeviceHash(expected) {
+      const d = devices.find((x) => x.hash === expected);
+      return { channel: d?.channel ?? null, error: null };
+    },
     async getMatchDevice(matchId) { return { deviceId: matchDevice, error: null }; },
-    async upsertMatch(_m, deviceId, _c, _s, _st) { matchDevice = deviceId; return { error: null }; },
+    async upsertMatch(_m, deviceId, _c, _s, _st, channel) { matchDevice = deviceId; matchChannel = channel; return { error: null }; },
+    channelUsed() { return matchChannel; },
     async upsertEvents(matchId, rows) {
       for (const e of rows) {
         const key = `${matchId}:${e.sequence}`;
@@ -18,7 +24,7 @@ function makeDb(opts: { deviceHash: string | null; ownerDeviceId?: string | null
       return { error: null };
     },
     async upsertState(_m, _s, _c) { return { error: null }; },
-  };
+  } as Db & { channelUsed(): string | null };
 }
 
 function req(method: string, url: string, headers: Record<string, string>, body: unknown): Request {
@@ -26,6 +32,10 @@ function req(method: string, url: string, headers: Record<string, string>, body:
 }
 
 const KEY = "test-device-key";
+const KEY_AMI = "cle-ami";
+function oneDevice(hash: string, channel = "marc") {
+  return { devices: [{ hash, channel }] };
+}
 const GOOD_BODY = {
   deviceId: "install-uuid-1",
   config: { targetScore: 21, winBy: 2, cap: 30, setsToWin: 2 },
@@ -52,20 +62,36 @@ Deno.test("401 sans X-Device-Key", async () => {
 });
 
 Deno.test("401 avec mauvaise clé", async () => {
-  const db = makeDb({ deviceHash: await sha256Hex("autre-clé") });
+  const db = makeDb(oneDevice(await sha256Hex("autre-clé")));
   const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db);
   assertEquals(res.status, 401);
 });
 
+Deno.test("401 si clé de device absente de la table", async () => {
+  const db = makeDb({ devices: [] });
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db);
+  assertEquals(res.status, 401);
+});
+
+Deno.test("2e device acceptée avec son propre canal", async () => {
+  const db = makeDb({ devices: [
+    { hash: await sha256Hex(KEY), channel: "marc" },
+    { hash: await sha256Hex(KEY_AMI), channel: "ami" },
+  ] });
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY_AMI }, GOOD_BODY), db);
+  assertEquals(res.status, 200);
+  assertEquals((db as Db & { channelUsed(): string | null }).channelUsed(), "ami");
+});
+
 Deno.test("400 si body invalide (events vide)", async () => {
-  const db = makeDb({ deviceHash: await sha256Hex(KEY) });
+  const db = makeDb(oneDevice(await sha256Hex(KEY)));
   const bad = { ...GOOD_BODY, events: [] };
   const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, bad), db);
   assertEquals(res.status, 400);
 });
 
 Deno.test("200 + ACK lastAcceptedSequence", async () => {
-  const db = makeDb({ deviceHash: await sha256Hex(KEY) });
+  const db = makeDb(oneDevice(await sha256Hex(KEY)));
   const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db);
   assertEquals(res.status, 200);
   const body = await res.json();
@@ -74,7 +100,7 @@ Deno.test("200 + ACK lastAcceptedSequence", async () => {
 });
 
 Deno.test("re-POST de doublons : 200, pas de duplication", async () => {
-  const db = makeDb({ deviceHash: await sha256Hex(KEY) });
+  const db = makeDb(oneDevice(await sha256Hex(KEY)));
   const h = { "X-Device-Key": KEY };
   await handleSync(req("POST", URL_MATCH, h, GOOD_BODY), db);
   const res2 = await handleSync(req("POST", URL_MATCH, h, GOOD_BODY), db);
@@ -84,7 +110,7 @@ Deno.test("re-POST de doublons : 200, pas de duplication", async () => {
 });
 
 Deno.test("403 si le match appartient à un autre device", async () => {
-  const db = makeDb({ deviceHash: await sha256Hex(KEY), ownerDeviceId: "autre-install" });
+  const db = makeDb({ ...oneDevice(await sha256Hex(KEY)), ownerDeviceId: "autre-install" });
   const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db);
   assertEquals(res.status, 403);
 });
