@@ -46,6 +46,7 @@ class SyncCore {
                 "setsOpp" => engine.getSetsOpp(),
                 "lastSequence" => engine.getLastSequence()
             },
+            "startedAt" => engine.getStartedAtMs(),
             "events" => evts
         };
     }
