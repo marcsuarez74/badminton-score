@@ -68,6 +68,30 @@ Sur l'écran score de la montre, un **point en haut à droite** indique l'état
 de la sync : vert = synchro OK · gris = envoi en cours · rouge = erreur
 (reprise automatique) · sombre = sync non configurée.
 
+### Variante : Custom Widget StreamElements
+
+Le même scorebug existe en **widget StreamElements** (`overlay/se-widget/`),
+à intégrer directement dans un overlay StreamElements (un seul browser source
+dans OBS avec vos alerts).
+
+Installation (une fois) :
+
+1. Ouvrez les 4 fichiers de `overlay/se-widget/` : `html.txt`, `css.css`,
+   `js.js`, `fields.json`
+2. Sur streamelements.com : **Overlays** → nouveau/éditer → **Add widget →
+   Custom Widget** (offert par le plan payant) → collez chaque bloc dans
+   l'onglet correspondant (HTML, CSS, JS, Fields)
+3. Redimensionnez le widget dans l'éditeur, copiez l'URL de l'overlay
+   StreamElements dans OBS
+
+Réglages (onglet Fields du widget) : canal (`marc`/`ami`), noms des joueurs,
+échelle, fond sombre on/off. Le widget sonde Supabase toutes les 2 s — le
+score s'affiche ≤ 2 s après chaque point.
+
+`sim.html` est un simulateur local de l'environnement StreamElements
+(`python3 -m http.server` puis `http://localhost:8000/sim.html`), utilisé
+pour les tests playwright.
+
 ## Architecture
 
 - **Montre** — `watch/connect-iq/` (Monkey C) : moteur de score local, UI, sync HTTP.

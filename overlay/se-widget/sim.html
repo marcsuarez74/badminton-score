@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- Simulateur d'environnement Custom Widget StreamElements — TESTS LOCAUX.
+     Charge les onglets html/css/js du widget puis déclenche onWidgetLoad
+     avec les fieldData passés en query (?channel=&name1=&scale=...). -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>BadScore — sim Custom Widget SE</title>
+</head>
+<body>
+<div id="widget-container"></div>
+<script>
+  async function boot() {
+    const base = location.pathname.replace(/sim\.html$/, "");
+    const html = await (await fetch(base + "html.txt")).text();
+    const css = await (await fetch(base + "css.css")).text();
+    const js = await (await fetch(base + "js.js")).text();
+    const container = document.getElementById("widget-container");
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.appendChild(style);
+    container.innerHTML = html;
+    // Le JS du widget est évalué comme le fait SE (dans le contexte global).
+    const script = document.createElement("script");
+    script.textContent = js;
+    document.body.appendChild(script);
+
+    const q = new URLSearchParams(location.search);
+    const fieldData = {
+      channel: q.get("channel") || "marc",
+      name1: q.get("name1") || "MOI",
+      name2: q.get("name2") || "LUI",
+      scale: parseFloat(q.get("scale") || "1"),
+      bg: q.get("bg") !== "0",
+    };
+    window.dispatchEvent(new CustomEvent("onWidgetLoad", { detail: { fieldData } }));
+  }
+  boot();
+</script>
+</body>
+</html>
