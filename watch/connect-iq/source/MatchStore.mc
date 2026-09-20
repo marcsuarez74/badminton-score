@@ -64,6 +64,7 @@ module MatchStore {
             "pi" => presetIndex,
             "pf" => pf,                    // pendingFrom : 1re séquence non acquittée (§7 sync)
             "ls" => engine.getLastSequence(),
+            "ts" => engine.getStartedAtMs(),
             "base" => engine.getBaseState()
         };
         Storage.setValue(META_KEY, meta);
@@ -90,6 +91,7 @@ module MatchStore {
             "mid" => meta["mid"],
             "pi" => meta["pi"],
             "ls" => meta["ls"],
+            "ts" => meta["ts"],
             "base" => meta["base"],
             "events" => events
         };

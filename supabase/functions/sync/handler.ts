@@ -7,6 +7,10 @@ export interface Db {
   getDeviceHash(expected: string): Promise<{ channel: string | null; error: string | null }>;
   getMatchDevice(matchId: string): Promise<{ deviceId: string | null; error: string | null }>;
   upsertMatch(matchId: string, deviceId: string, config: Record<string, unknown>, startedAt: number | null, status: string, channel: string): Promise<{ error: string | null }>;
+  // Invariant « un seul match actif par device » : à la création d'un match, on
+  // clôture les précédents jamais terminés (sinon ils concurrencent le pick
+  // « actif le plus récent » de l'overlay et du bot chat).
+  finishOtherActiveMatches(deviceId: string, matchId: string): Promise<{ error: string | null }>;
   upsertEvents(matchId: string, events: Record<string, unknown>[]): Promise<{ error: string | null }>;
   upsertState(matchId: string, snapshot: Record<string, unknown>, config: Record<string, unknown>): Promise<{ error: string | null }>;
 }
@@ -85,6 +89,10 @@ export async function handleSync(req: Request, db: Db): Promise<Response> {
   const owner = await db.getMatchDevice(matchId);
   if (owner.error) return json(500, { error: owner.error });
   if (owner.deviceId !== null && owner.deviceId !== v.deviceId) return json(403, { error: "owner" });
+  if (owner.deviceId === null) {
+    const cl = await db.finishOtherActiveMatches(v.deviceId, matchId);
+    if (cl.error) return json(500, { error: cl.error });
+  }
   const status = v.snapshot.status === "match_finished" ? "finished" : "active";
   const up = await db.upsertMatch(matchId, v.deviceId, v.config, v.startedAt, status, dev.channel);
   if (up.error) return json(500, { error: up.error });

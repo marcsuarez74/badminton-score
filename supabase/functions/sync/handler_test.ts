@@ -8,6 +8,7 @@ function makeDb(opts: { devices?: { hash: string; channel: string }[]; ownerDevi
   const devices = opts.devices ?? [];
   let matchDevice: string | null = opts.ownerDeviceId ?? null;
   let matchChannel: string | null = null;
+  const state = { finishedOthers: [] as string[] };
   return {
     async getDeviceHash(expected) {
       const d = devices.find((x) => x.hash === expected);
@@ -15,7 +16,12 @@ function makeDb(opts: { devices?: { hash: string; channel: string }[]; ownerDevi
     },
     async getMatchDevice(matchId) { return { deviceId: matchDevice, error: null }; },
     async upsertMatch(_m, deviceId, _c, _s, _st, channel) { matchDevice = deviceId; matchChannel = channel; return { error: null }; },
+    async finishOtherActiveMatches(deviceId, matchId) {
+      state.finishedOthers.push(deviceId + ':' + matchId);
+      return { error: null };
+    },
     channelUsed() { return matchChannel; },
+    get finishedOthers() { return state.finishedOthers; },
     async upsertEvents(matchId, rows) {
       for (const e of rows) {
         const key = `${matchId}:${e.sequence}`;
@@ -107,6 +113,19 @@ Deno.test("re-POST de doublons : 200, pas de duplication", async () => {
   assertEquals(res2.status, 200);
   // la Map factice simule la contrainte : 2 events seulement (seq 2 et 3)
   // (vérification indirecte : le re-POST ne renvoie pas d'erreur)
+});
+
+Deno.test("création d'un match clôture les actifs précédents du même device", async () => {
+  const db = makeDb(oneDevice(await sha256Hex(KEY))) as Db & { finishedOthers: string[] };
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db);
+  assertEquals(res.status, 200);
+  assertEquals(db.finishedOthers, ["install-uuid-1:B7K2QM9X"]);
+});
+
+Deno.test("re-POST d'un match existant ne clôture rien", async () => {
+  const db = makeDb({ ...oneDevice(await sha256Hex(KEY)), ownerDeviceId: "install-uuid-1" }) as Db & { finishedOthers: string[] };
+  await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db);
+  assertEquals(db.finishedOthers.length, 0);
 });
 
 Deno.test("403 si le match appartient à un autre device", async () => {

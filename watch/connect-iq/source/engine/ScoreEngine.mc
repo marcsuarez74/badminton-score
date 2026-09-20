@@ -1,5 +1,6 @@
 import Toybox.Lang;
 import Toybox.System;
+import Toybox.Time;
 
 // Moteur de score PUR (aucun import Graphics/WatchUi, spec §6.2).
 // Event-sourcing : l'état est le replay du journal ; les mutations poussent
@@ -32,15 +33,20 @@ class ScoreEngine {
     var mBaseSetNumber;
     var mBaseLastSetScoreMe;
     var mBaseLastSetScoreOpp;
+    var mStartedAtMs;               // début du match (epoch ms) — ordonnancement cloud
 
     function initialize(config, matchId) {
         mConfig = config;
         mMatchId = matchId;
+        mStartedAtMs = Time.now().value() * 1000l;   // fallback restore ; MatchView remet la valeur persistée
         mEvents = [];
         mLastSequence = 0;
         resetBase();
         replay();
     }
+
+    function getStartedAtMs() as Long { return mStartedAtMs; }
+    function setStartedAtMs(ms as Long) as Void { mStartedAtMs = ms; }
 
     // ---- mutations ----
 
@@ -76,6 +82,7 @@ class ScoreEngine {
     function newMatch(config, matchId) as Void {
         mConfig = config;
         mMatchId = matchId;
+        mStartedAtMs = Time.now().value() * 1000l;
         mEvents = [];
         mLastSequence = 0;
         resetBase();
