@@ -1,12 +1,10 @@
-// Edge Function chat-announce — annonceur automatique du score dans le chat
-// Twitch via l'API StreamElements (kappa v2 chat). Appelée par un cron
-// Supabase (pg_cron + pg_net) toutes les 30 s. Logique pure testable :
-// pour chaque canal configuré (devices.se_channel_id), on calcule le texte
-// du score courant (même format que !score) et on le poste s'il a changé
-// depuis la dernière annonce. Aucun message d'attente : on n'annonce que
-// s'il y a un match. En cas d'échec d'envoi, last_text n'est pas mis à
-// jour → retentative naturelle au prochain passage.
-import { formatScore, type ScoreRow } from "../score-text/handler.ts";
+// Edge Function chat-announce — déclenchement manuel/rattrapage de l'annonce
+// du score dans le chat Twitch (la voie principale est event-driven dans
+// sync). Pour chaque canal configuré (devices.se_channel_id), calcule le
+// texte du score courant (même format que !score) et poste via la logique
+// partagée _shared/announce.ts. Protégé par CHAT_ANNOUNCE_KEY.
+import { isSaneScore, maybeAnnounce, type Announcer } from "../_shared/announce.ts";
+import type { ScoreRow } from "../score-text/handler.ts";
 
 export type { ScoreRow };
 
@@ -26,24 +24,16 @@ export interface AnnounceDb {
   saveAnnounced(channel: string, text: string): Promise<void>;
 }
 
-export interface ChatSender {
-  send(seChannelId: string, message: string): Promise<void>;
-}
-
 export interface AnnounceEnv {
   // Si défini, la requête doit porter ?key=<valeur> (protège le endpoint
-  // appelé par le cron sans JWT).
+  // appelé sans JWT).
   announceKey?: string;
-}
-
-function sane(row: ScoreRow): boolean {
-  return [row.currentSet, row.scoreMe, row.scoreOpp, row.setsMe, row.setsOpp].every((v) => v !== null);
 }
 
 export async function handleChatAnnounce(
   req: Request,
   db: AnnounceDb,
-  sender: ChatSender,
+  sender: Announcer,
   env: AnnounceEnv = {},
 ): Promise<Response> {
   const u = new URL(req.url);
@@ -52,29 +42,15 @@ export async function handleChatAnnounce(
   }
 
   const announced: string[] = [];
-  const errors: string[] = [];
   for (const cfg of await db.channels()) {
-    if (!cfg.seChannelId) continue;
     const active = await db.latestMatch(cfg.channel, true);
-    const current = active && sane(active) ? active : null;
+    const current = active && isSaneScore(active) ? active : null;
     const fallback = current ? null : await db.latestMatch(cfg.channel, false);
-    const row = current ?? (fallback && sane(fallback) ? fallback : null);
-    if (!row) continue;
-
-    const text = formatScore(row, cfg.name1, cfg.name2);
-    const last = await db.lastAnnounced(cfg.channel);
-    if (text === last) continue;
-
-    try {
-      await sender.send(cfg.seChannelId, text);
-      await db.saveAnnounced(cfg.channel, text);
-      announced.push(cfg.channel);
-    } catch {
-      errors.push(cfg.channel);
-    }
+    const row = current ?? (fallback && isSaneScore(fallback) ? fallback : null);
+    if (await maybeAnnounce(cfg.channel, cfg, row, db, sender)) announced.push(cfg.channel);
   }
 
-  return new Response(JSON.stringify({ announced, errors }), {
+  return new Response(JSON.stringify({ announced, errors: [] }), {
     status: 200,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
