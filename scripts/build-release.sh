@@ -48,6 +48,19 @@ s = s.replace('<property id="deviceKey" type="string"/>',
 open(path, 'w').write(s)
 EOF
 
+# Cuisson de la config dans le CODE (BackendConfig.mc) : les defaults
+# settings.xml ne sont pas lus par Properties.getValue sur matériel (bug 2,
+# phase 4a) → app silencieuse. Consts compilées = fiables sur matériel.
+python3 - "$TMP/app/source/services/BackendConfig.mc" "$BACKEND_URL" "$DEVICE_KEY" <<'EOF'
+import sys
+path, url, key = sys.argv[1], sys.argv[2], sys.argv[3]
+s = open(path).read()
+assert 'const BACKEND_URL = "";' in s and 'const DEVICE_KEY = "";' in s
+s = s.replace('const BACKEND_URL = "";', 'const BACKEND_URL = "' + url + '";')
+s = s.replace('const DEVICE_KEY = "";', 'const DEVICE_KEY = "' + key + '";')
+open(path, 'w').write(s)
+EOF
+
 OUT="$REPO/watch/connect-iq/sideload"
 mkdir -p "$OUT"
 for DEV in $DEVICES; do
