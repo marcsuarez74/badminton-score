@@ -3,12 +3,13 @@ import { handleSync, sha256Hex, type Db, type Validated } from "./handler.ts";
 
 const URL_MATCH = "https://fn.test/functions/v1/sync/matches/B7K2QM9X/events";
 
-function makeDb(opts: { devices?: { hash: string; channel: string }[]; ownerDeviceId?: string | null } = {}): Db {
+function makeDb(opts: { devices?: { hash: string; channel: string }[]; ownerDeviceId?: string | null; announce?: { seChannelId: string | null; last?: string } } = {}): Db {
   const events = new Map<string, Record<string, unknown>>();
   const devices = opts.devices ?? [];
   let matchDevice: string | null = opts.ownerDeviceId ?? null;
   let matchChannel: string | null = null;
   const state = { finishedOthers: [] as string[] };
+  const announce = { saved: [] as string[], last: opts.announce?.last ?? null };
   return {
     async getDeviceHash(expected) {
       const d = devices.find((x) => x.hash === expected);
@@ -30,7 +31,24 @@ function makeDb(opts: { devices?: { hash: string; channel: string }[]; ownerDevi
       return { error: null };
     },
     async upsertState(_m, _s, _c) { return { error: null }; },
-  } as Db & { channelUsed(): string | null };
+    async getAnnounceCfg() {
+      return { seChannelId: opts.announce?.seChannelId ?? null, name1: "MOI", name2: "LUI" };
+    },
+    async lastAnnounced() { return announce.last; },
+    async saveAnnounced(_c, text) { announce.last = text; announce.saved.push(text); },
+    get announceSaved() { return announce.saved; },
+  } as Db & { channelUsed(): string | null; announceSaved: string[] };
+}
+
+function makeSender(fail = false): { sender: { send(seChannelId: string, message: string): Promise<void> }; sent: string[] } {
+  const sent: string[] = [];
+  const sender = {
+    async send(_seChannelId: string, message: string) {
+      if (fail) throw new Error("SE down");
+      sent.push(message);
+    },
+  };
+  return { sender, sent };
 }
 
 function req(method: string, url: string, headers: Record<string, string>, body: unknown): Request {
@@ -132,5 +150,46 @@ Deno.test("403 si le match appartient à un autre device", async () => {
   const db = makeDb({ ...oneDevice(await sha256Hex(KEY)), ownerDeviceId: "autre-install" });
   const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db);
   assertEquals(res.status, 403);
+});
+
+Deno.test("annonce le score dans le chat au moment du sync (event-driven)", async () => {
+  const db = makeDb({ ...oneDevice(await sha256Hex(KEY)), announce: { seChannelId: "123456" } });
+  const { sender, sent } = makeSender();
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db, sender);
+  assertEquals(res.status, 200);
+  assertEquals(sent, ["MOI 2-1 LUI · SET 1 · Sets 0-0"]);
+  assertEquals((db as Db & { announceSaved: string[] }).announceSaved, ["MOI 2-1 LUI · SET 1 · Sets 0-0"]);
+});
+
+Deno.test("pas d'annonce si le texte n'a pas changé depuis la dernière", async () => {
+  const db = makeDb({ ...oneDevice(await sha256Hex(KEY)), announce: { seChannelId: "123456", last: "MOI 2-1 LUI · SET 1 · Sets 0-0" } });
+  const { sender, sent } = makeSender();
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db, sender);
+  assertEquals(res.status, 200);
+  assertEquals(sent, []);
+});
+
+Deno.test("échec StreamElements n'échoue pas la sync (retentative au prochain point)", async () => {
+  const db = makeDb({ ...oneDevice(await sha256Hex(KEY)), announce: { seChannelId: "123456" } });
+  const { sender, sent } = makeSender(true);
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db, sender);
+  assertEquals(res.status, 200);
+  assertEquals((await res.json()).lastAcceptedSequence, 3);
+  assertEquals((db as Db & { announceSaved: string[] }).announceSaved, []);
+  assertEquals(sent, []);
+});
+
+Deno.test("pas d'annonce si le canal n'a pas de se_channel_id", async () => {
+  const db = makeDb({ ...oneDevice(await sha256Hex(KEY)), announce: { seChannelId: null } });
+  const { sender, sent } = makeSender();
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db, sender);
+  assertEquals(res.status, 200);
+  assertEquals(sent, []);
+});
+
+Deno.test("pas d'annonce sans sender (mode sans chat)", async () => {
+  const db = makeDb({ ...oneDevice(await sha256Hex(KEY)), announce: { seChannelId: "123456" } });
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db);
+  assertEquals(res.status, 200);
 });
 
