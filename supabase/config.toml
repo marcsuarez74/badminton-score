@@ -416,3 +416,6 @@ enabled = true
 
 [functions.sync]
 verify_jwt = false
+
+[functions.score-text]
+verify_jwt = false
