@@ -7,17 +7,17 @@ const supabase = createClient(
 );
 
 const db: Db = {
-  async getDeviceHash() {
-    const { data, error } = await supabase.from("devices").select("device_key_hash").eq("id", 1).maybeSingle();
-    return { hash: (data as { device_key_hash?: string } | null)?.device_key_hash ?? null, error: error ? error.message : null };
+  async getDeviceHash(expected: string) {
+    const { data, error } = await supabase.from("devices").select("channel").eq("device_key_hash", expected).maybeSingle();
+    return { channel: (data as { channel?: string } | null)?.channel ?? null, error: error ? error.message : null };
   },
   async getMatchDevice(matchId) {
     const { data, error } = await supabase.from("matches").select("device_id").eq("match_id", matchId).maybeSingle();
     return { deviceId: (data as { device_id?: string } | null)?.device_id ?? null, error: error ? error.message : null };
   },
-  async upsertMatch(matchId, deviceId, config, startedAt, status) {
+  async upsertMatch(matchId, deviceId, config, startedAt, status, channel) {
     const { error } = await supabase.from("matches").upsert(
-      { match_id: matchId, device_id: deviceId, config, started_at: startedAt, status },
+      { match_id: matchId, device_id: deviceId, config, started_at: startedAt, status, channel },
       { onConflict: "match_id" },
     );
     return { error: error ? error.message : null };
