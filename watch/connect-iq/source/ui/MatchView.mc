@@ -400,6 +400,16 @@ class MatchView extends WatchUi.View {
 
         dc.setColor(C_GREY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, headTop, labelFont(h), "SET " + mEngine.getSetNumber(), Graphics.TEXT_JUSTIFY_CENTER);
+        // Point de sync (haut-droite, hauteur du header) : état du service.
+        var rSync = h / 110;
+        if (rSync < 3) { rSync = 3; }
+        var syncColor = C_DIM;
+        var st = mSync.getStatus();
+        if (st == SYNC_ST_OK) { syncColor = C_ME; }
+        else if (st == SYNC_ST_ERR) { syncColor = 0xE5484D; }
+        else if (st == SYNC_ST_SEND) { syncColor = C_GREY; }
+        dc.setColor(syncColor, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(w - h / 30 - rSync, headTop + fLab / 2, rSync);
         dc.setColor(C_ME, Graphics.COLOR_TRANSPARENT);
         dc.drawText(startX, digitsTop, big, sMe, Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(C_SEP, Graphics.COLOR_TRANSPARENT);
