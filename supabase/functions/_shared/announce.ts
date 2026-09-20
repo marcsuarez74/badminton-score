@@ -52,7 +52,10 @@ export function makeSeSender(): Announcer {
     async send(seChannelId, message) {
       const jwt = Deno.env.get("SE_JWT");
       if (!jwt) throw new Error("SE_JWT missing");
-      const res = await fetch(`https://api.streamelements.com/kappa/v2/chat/${seChannelId}`, {
+      // Endpoint validé en live : /kappa/v2/bot/{channelId}/say — le bot
+      // StreamElements écrit le message dans le chat Twitch du compte
+      // (/kappa/v2/chat/{id} renvoie 404).
+      const res = await fetch(`https://api.streamelements.com/kappa/v2/bot/${seChannelId}/say`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${jwt}`, "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
