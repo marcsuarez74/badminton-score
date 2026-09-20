@@ -2,9 +2,11 @@
 // calcule JAMAIS le score : il valide la forme, authentifie la device key et
 // upsert de façon idempotente (ADR-007, spec sync §5/§11/§13).
 export interface Db {
-  getDeviceHash(): Promise<{ hash: string | null; error: string | null }>;
+  // Auth multi-device : le handler hash la clé du header et cherche la ligne
+  // correspondante dans `devices`. Le canal (overlay/bot) appartient au device.
+  getDeviceHash(expected: string): Promise<{ channel: string | null; error: string | null }>;
   getMatchDevice(matchId: string): Promise<{ deviceId: string | null; error: string | null }>;
-  upsertMatch(matchId: string, deviceId: string, config: Record<string, unknown>, startedAt: number | null, status: string): Promise<{ error: string | null }>;
+  upsertMatch(matchId: string, deviceId: string, config: Record<string, unknown>, startedAt: number | null, status: string, channel: string): Promise<{ error: string | null }>;
   upsertEvents(matchId: string, events: Record<string, unknown>[]): Promise<{ error: string | null }>;
   upsertState(matchId: string, snapshot: Record<string, unknown>, config: Record<string, unknown>): Promise<{ error: string | null }>;
 }
@@ -76,15 +78,15 @@ export async function handleSync(req: Request, db: Db): Promise<Response> {
   try { body = await req.json(); } catch { return json(400, { error: "json" }); }
   const v = validateBody(body);
   if (!v.ok) return json(v.status, { error: v.message });
-  const dev = await db.getDeviceHash();
-  if (dev.error) return json(500, { error: dev.error });
   const expected = await sha256Hex(key);
-  if (!dev.hash || dev.hash !== expected) return json(401, { error: "key" });
+  const dev = await db.getDeviceHash(expected);
+  if (dev.error) return json(500, { error: dev.error });
+  if (!dev.channel) return json(401, { error: "key" });
   const owner = await db.getMatchDevice(matchId);
   if (owner.error) return json(500, { error: owner.error });
   if (owner.deviceId !== null && owner.deviceId !== v.deviceId) return json(403, { error: "owner" });
   const status = v.snapshot.status === "match_finished" ? "finished" : "active";
-  const up = await db.upsertMatch(matchId, v.deviceId, v.config, v.startedAt, status);
+  const up = await db.upsertMatch(matchId, v.deviceId, v.config, v.startedAt, status, dev.channel);
   if (up.error) return json(500, { error: up.error });
   const ev = await db.upsertEvents(matchId, v.events);
   if (ev.error) return json(500, { error: ev.error });
