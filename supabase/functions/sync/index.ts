@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleSync, type Db } from "./handler.ts";
+import { makeSeSender } from "../_shared/announce.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -57,6 +58,27 @@ const db: Db = {
     }, { onConflict: "match_id" });
     return { error: error ? error.message : null };
   },
+  async getAnnounceCfg(channel) {
+    const { data } = await supabase.from("devices")
+      .select("se_channel_id, name1, name2").eq("channel", channel).maybeSingle();
+    if (!data) return null;
+    return {
+      seChannelId: (data.se_channel_id as string | null) ?? null,
+      name1: String(data.name1 ?? "MOI"),
+      name2: String(data.name2 ?? "LUI"),
+    };
+  },
+  async lastAnnounced(channel) {
+    const { data } = await supabase.from("chat_announce")
+      .select("last_text").eq("channel", channel).maybeSingle();
+    return data ? String(data.last_text) : null;
+  },
+  async saveAnnounced(channel, text) {
+    await supabase.from("chat_announce")
+      .upsert({ channel, last_text: text, updated_at: new Date().toISOString() });
+  },
 };
 
-Deno.serve((req: Request) => handleSync(req, db));
+const seSender = makeSeSender();
+
+Deno.serve((req: Request) => handleSync(req, db, seSender));
