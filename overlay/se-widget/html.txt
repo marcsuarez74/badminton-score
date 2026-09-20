@@ -1,0 +1,25 @@
+<!-- BadScore — Custom Widget StreamElements : onglet HTML -->
+<div id="wrap">
+  <div id="bug">
+    <div class="team me">
+      <div class="tcol">
+        <div class="name" id="n1">MOI</div>
+        <div class="pips" id="d1"></div>
+      </div>
+    </div>
+    <div class="mid">
+      <div class="pts" id="p1">0</div>
+      <div class="colon">:</div>
+      <div class="pts" id="p2">0</div>
+    </div>
+    <div class="team opp">
+      <div class="tcol">
+        <div class="name" id="n2">LUI</div>
+        <div class="pips" id="d2"></div>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div class="setlab" id="setlab">SET 1</div>
+  </div>
+  <div id="empty">EN ATTENTE DE MATCH</div>
+</div>
