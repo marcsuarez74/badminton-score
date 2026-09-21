@@ -45,11 +45,18 @@ class SyncService {
         mEngineRef = engine;
         if (engine == null) { return; }
         // Config cuisée au build (BackendConfig, fiable sur matériel) sinon
-        // Properties (chemin nominal GCM si le bug Réglages est corrigé un jour).
+        // Properties (chemin nominal store via GCM). Lecture défensive :
+        // GCM peut relâcher le type des properties (FAQ Garmin) → toString().
         var url = BackendConfig.BACKEND_URL;
         var key = BackendConfig.DEVICE_KEY;
-        if (url == null || url.equals("")) { url = Properties.getValue("backendUrl"); }
-        if (key == null || key.equals("")) { key = Properties.getValue("deviceKey"); }
+        if (url == null || url.equals("")) {
+            var pUrl = Properties.getValue("backendUrl");
+            if (pUrl != null) { url = pUrl.toString(); }
+        }
+        if (key == null || key.equals("")) {
+            var pKey = Properties.getValue("deviceKey");
+            if (pKey != null) { key = pKey.toString(); }
+        }
         if (url == null || url.equals("") || key == null || key.equals("")) {
             mStatus = SYNC_ST_OFF;
             return;
