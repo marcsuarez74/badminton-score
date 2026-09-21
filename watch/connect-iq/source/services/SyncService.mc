@@ -25,6 +25,7 @@ class SyncService {
     var mLastAttemptMs = 0l;
     var mBackoffUntilMs = 0l;
     var mErrors = 0;
+    var mLastError = 0;
     var mEngineRef = null;      // dernier engine vu (drain / watchdog)
     var mInFlightMatchId = "";  // matchId de la requête en vol (ACK lié au bon match)
     var mTimer;                 // watchdog 30 s OU drain — un seul rôle à la fois
@@ -38,6 +39,12 @@ class SyncService {
 
     function getStatus() as Number {
         return mStatus;
+    }
+
+    // Dernier code de réponse non-OK (diagnostic : affiché par le liseré
+    // rouge). -1 = timeout applicatif, 0 = aucun.
+    function getLastError() as Number {
+        return mLastError;
     }
 
     // Déclencheur : après chaque saveMatch (MatchView.syncScreen / startMatch)
@@ -98,6 +105,7 @@ class SyncService {
             mErrors = 0;
             mBackoffUntilMs = 0l;
             mStatus = SYNC_ST_OK;
+            mLastError = 0;
             if (data != null && data instanceof Dictionary) {
                 var ack = (data as Dictionary)["lastAcceptedSequence"];
                 if (ack != null && mEngineRef != null && mEngineRef.getMatchId().equals(mInFlightMatchId)) {
@@ -107,6 +115,7 @@ class SyncService {
             }
         } else {
             mErrors += 1;
+            mLastError = responseCode;
             mBackoffUntilMs = System.getTimer() + mCore.nextBackoffMs(mErrors);
             mStatus = SYNC_ST_ERR;
             System.println("[sync] erreur " + responseCode + " -> backoff");

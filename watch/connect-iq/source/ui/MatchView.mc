@@ -280,6 +280,13 @@ class MatchView extends WatchUi.View {
         var t = h / 90;
         if (t < 2) { t = 2; }
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        // Code d'erreur affiché en haut-centre (diagnostic 0.1.2) : "401",
+        // "404", "t/o"… pour distinguer clé refusée / URL / réseau.
+        if (st == SYNC_ST_ERR) {
+            var err = mSync.getLastError();
+            var label = "sync " + (err == -1 ? "t/o" : err);
+            dc.drawText(w / 2, h / 12, Graphics.FONT_TINY, label, Graphics.TEXT_JUSTIFY_CENTER);
+        }
         if (System.getDeviceSettings().screenShape == System.SCREEN_SHAPE_ROUND) {
             var r = w / 2 - t / 2 - 1;
             var i = 0;
