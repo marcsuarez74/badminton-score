@@ -219,7 +219,14 @@ class MatchView extends WatchUi.View {
             mScreen = MatchScreen.SCORE;   // sortir du menu AVANT syncScreen (garde MENU de syncScreen)
             syncScreen();                  // + sauvegarde du nouveau match
         } else {
-            System.exit();                    // Quitter — dernier bloc, rien après
+            // Quitter = abandon du match : purge de la persistance (sinon la
+            // reprise restaurerait le match au prochain lancement), moteur
+            // annulé AVANT exit (filet App.onStop->persist() ne re-sauvegarde
+            // rien), sync au repos, puis fermeture de l'app.
+            MatchStore.clearMatch();
+            mEngine = null;
+            mSync.trigger(null);
+            System.exit();                // dernier bloc, rien après
         }
         return true;
     }

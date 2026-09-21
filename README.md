@@ -36,7 +36,7 @@ avec une clé device dédiée (canal `ami`).
 | BACK | point adverse |
 | UP | annuler le dernier point |
 | DOWN | confirmer le set → « TERMINER SET ? » (DOWN = oui, BACK = non) |
-| UP long | menu (Reprendre / Format / Reset / Quitter) |
+| UP long | menu (Reprendre / Format / Reset / Quitter — Quitter abandonne le match : purge + fermeture) |
 
 ## Overlay OBS
 

@@ -61,6 +61,7 @@ Relance BadScore : le point en haut à droite doit passer **vert** (au premier p
 | **UP** | annuler le dernier point |
 | **DOWN** | demander la fin du set → **« TERMINER SET ? »** (DOWN = oui, BACK = non) |
 | **UP (appui long)** | menu : Reprendre / Format / Reset / Quitter |
+| **QUITTER** (dans le menu) | **abandonne le match** : le score est supprimé de la montre (prochain lancement = choix du format) et l'app se ferme |
 
 ### Les règles gérées automatiquement
 - 21 points par set, **2 points d'écart** (cap à 30), **2 sets gagnants** le match
