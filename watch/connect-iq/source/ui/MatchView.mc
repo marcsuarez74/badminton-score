@@ -260,6 +260,36 @@ class MatchView extends WatchUi.View {
             drawMenu(dc, w, h);
             break;
         }
+        // Liseré d'état de sync sur les écrans de match (demande utilisateur :
+        // vert pendant l'envoi, invisible une fois connecté, rouge si erreur).
+        if (mScreen != MatchScreen.SETUP && mScreen != MatchScreen.MENU) {
+            drawSyncBorder(dc, w, h);
+        }
+    }
+
+    // Liseré périphérique : SYNC_ST_SEND = vert, SYNC_ST_ERR = rouge, rien
+    // sinon (OK ou off). Anneau sur écran rond, 4 bandes sinon. Épaisseur
+    // ~h/90 (3 px sur 280, plancher 2). Ne touche jamais au scoring : le
+    // réseau reste non-bloquant (spec sync §7).
+    function drawSyncBorder(dc as Dc, w as Number, h as Number) as Void {
+        var st = mSync.getStatus();
+        var color = null;
+        if (st == SYNC_ST_SEND) { color = C_ME; }
+        else if (st == SYNC_ST_ERR) { color = 0xE5484D; }
+        else { return; }
+        var t = h / 90;
+        if (t < 2) { t = 2; }
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        if (System.getDeviceSettings().screenShape == System.SCREEN_SHAPE_ROUND) {
+            var r = w / 2 - t / 2 - 1;
+            var i = 0;
+            for (i = 0; i < t; i += 1) { dc.drawCircle(w / 2, h / 2, r - i); }
+        } else {
+            dc.fillRectangle(0, 0, w, t);
+            dc.fillRectangle(0, h - t, w, t);
+            dc.fillRectangle(0, 0, t, h);
+            dc.fillRectangle(w - t, 0, t, h);
+        }
     }
 
     // Ligne d'aide du bas : FONT_SMALL si le texte tient, FONT_TINY sinon.
@@ -408,16 +438,6 @@ class MatchView extends WatchUi.View {
 
         dc.setColor(C_GREY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, headTop, labelFont(h), "SET " + mEngine.getSetNumber(), Graphics.TEXT_JUSTIFY_CENTER);
-        // Point de sync (haut-droite, hauteur du header) : état du service.
-        var rSync = h / 110;
-        if (rSync < 3) { rSync = 3; }
-        var syncColor = C_DIM;
-        var st = mSync.getStatus();
-        if (st == SYNC_ST_OK) { syncColor = C_ME; }
-        else if (st == SYNC_ST_ERR) { syncColor = 0xE5484D; }
-        else if (st == SYNC_ST_SEND) { syncColor = C_GREY; }
-        dc.setColor(syncColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(w - h / 30 - rSync, headTop + fLab / 2, rSync);
         dc.setColor(C_ME, Graphics.COLOR_TRANSPARENT);
         dc.drawText(startX, digitsTop, big, sMe, Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(C_SEP, Graphics.COLOR_TRANSPARENT);

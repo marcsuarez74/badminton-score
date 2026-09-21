@@ -3,6 +3,7 @@ import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.System;
 import Toybox.Timer;
+import Toybox.WatchUi;
 
 // Synchronisation montre → backend (Phase 4a, spec sync §7). Jamais bloquant :
 // le scoring ne dépend jamais du réseau. Batchs ≤ 5 events + snapshot, une
@@ -61,6 +62,9 @@ class SyncService {
             mStatus = SYNC_ST_OFF;
             return;
         }
+        // Tolérance de collage : settings.xml/GCM peuvent fournir la racine
+        // Supabase ; l'API Edge vit sous /functions/v1 (404 silencieux sinon).
+        if (url.find("/functions/v1") == null) { url = url + "/functions/v1"; }
         var now = System.getTimer();
         if (!mCore.shouldSend(now, mLastAttemptMs, mInFlight, mBackoffUntilMs)) { return; }
         var batch = mCore.batchSlice(engine.getEvents(), MatchStore.getPendingFrom(), 5);
@@ -107,6 +111,7 @@ class SyncService {
             mStatus = SYNC_ST_ERR;
             System.println("[sync] erreur " + responseCode + " -> backoff");
         }
+        WatchUi.requestUpdate();             // efface le liseré d'envoi dès la réponse
         _scheduleDrain();
     }
 
