@@ -3,8 +3,13 @@
      le XSD manifest v3 ne les accepte pas (erreur cvc 2.4.a, Task 9). -->
 <resources>
     <properties>
-        <property id="backendUrl" type="string"/>
-        <property id="deviceKey" type="string"/>
+        <!-- Syntaxe Garmin (réponse support 21/09) : la valeur par défaut =
+             le CONTENU TEXTE de l'élément property (pas d'attribut default=).
+             Sans défaut valide, Properties.getValue renvoie null sur matériel.
+             backendUrl : défaut = backend partagé (URL publique) ; store build
+             = 1 seul champ à remplir (deviceKey) en GCM. -->
+        <property id="backendUrl" type="string">https://bzdbnptnubkkagmmxhyi.supabase.co</property>
+        <property id="deviceKey" type="string"></property>
     </properties>
     <settings>
         <setting propertyKey="@Properties.backendUrl" title="Backend URL">
