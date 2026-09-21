@@ -19,7 +19,7 @@ const db: Db = {
   async upsertMatch(matchId, deviceId, config, startedAt, status, channel) {
     const { error } = await supabase.from("matches").upsert(
       { match_id: matchId, device_id: deviceId, config, started_at: startedAt, status, channel },
-      { onConflict: "match_id" },
+      { onConflict: "match_id", defaultToNull: false },
     );
     return { error: error ? error.message : null };
   },
@@ -74,8 +74,9 @@ const db: Db = {
     return data ? String(data.last_text) : null;
   },
   async saveAnnounced(channel, text) {
-    await supabase.from("chat_announce")
+    const { error } = await supabase.from("chat_announce")
       .upsert({ channel, last_text: text, updated_at: new Date().toISOString() });
+    if (error) console.log("[announce] save error=", JSON.stringify(error));
   },
 };
 

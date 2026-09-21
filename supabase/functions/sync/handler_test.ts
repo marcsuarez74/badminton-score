@@ -8,6 +8,7 @@ function makeDb(opts: { devices?: { hash: string; channel: string }[]; ownerDevi
   const devices = opts.devices ?? [];
   let matchDevice: string | null = opts.ownerDeviceId ?? null;
   let matchChannel: string | null = null;
+  let matchStartedAt: number | null = null;
   const state = { finishedOthers: [] as string[] };
   const announce = { saved: [] as string[], last: opts.announce?.last ?? null };
   return {
@@ -16,12 +17,13 @@ function makeDb(opts: { devices?: { hash: string; channel: string }[]; ownerDevi
       return { channel: d?.channel ?? null, error: null };
     },
     async getMatchDevice(matchId) { return { deviceId: matchDevice, error: null }; },
-    async upsertMatch(_m, deviceId, _c, _s, _st, channel) { matchDevice = deviceId; matchChannel = channel; return { error: null }; },
+    async upsertMatch(_m, deviceId, _c, startedAt, _st, channel) { matchDevice = deviceId; matchChannel = channel; matchStartedAt = startedAt; return { error: null }; },
     async finishOtherActiveMatches(deviceId, matchId) {
       state.finishedOthers.push(deviceId + ':' + matchId);
       return { error: null };
     },
     channelUsed() { return matchChannel; },
+    get startedAtUsed() { return matchStartedAt; },
     get finishedOthers() { return state.finishedOthers; },
     async upsertEvents(matchId, rows) {
       for (const e of rows) {
@@ -123,8 +125,25 @@ Deno.test("200 + ACK lastAcceptedSequence", async () => {
   assertEquals(body.lastAcceptedSequence, 3);
 });
 
-Deno.test("re-POST de doublons : 200, pas de duplication", async () => {
+Deno.test("startedAt envoyé en string (Long Garmin > int32) est accepté en number", async () => {
   const db = makeDb(oneDevice(await sha256Hex(KEY)));
+  const body = { ...GOOD_BODY, startedAt: "1790000716000" };
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, body), db);
+  assertEquals(res.status, 200);
+  assertEquals((db as Db & { startedAtUsed: number | null }).startedAtUsed, 1790000716000);
+});
+
+Deno.test("startedAt en number reste accepté ; absent reste null", async () => {
+  const db = makeDb(oneDevice(await sha256Hex(KEY)));
+  const res = await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, { ...GOOD_BODY, startedAt: 1790000716000 }), db);
+  assertEquals(res.status, 200);
+  assertEquals((db as Db & { startedAtUsed: number | null }).startedAtUsed, 1790000716000);
+  const db2 = makeDb(oneDevice(await sha256Hex(KEY)));
+  await handleSync(req("POST", URL_MATCH, { "X-Device-Key": KEY }, GOOD_BODY), db2);
+  assertEquals((db2 as Db & { startedAtUsed: number | null }).startedAtUsed, null);
+});
+
+Deno.test("re-POST de doublons : 200, pas de duplication", async () => {  const db = makeDb(oneDevice(await sha256Hex(KEY)));
   const h = { "X-Device-Key": KEY };
   await handleSync(req("POST", URL_MATCH, h, GOOD_BODY), db);
   const res2 = await handleSync(req("POST", URL_MATCH, h, GOOD_BODY), db);

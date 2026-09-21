@@ -61,6 +61,7 @@ export function makeSeSender(): Announcer {
         body: JSON.stringify({ message }),
       });
       if (!res.ok) throw new Error(`SE ${res.status}`);
+      console.log("[se] status=", res.status, "channel=", seChannelId, "msg=", message.slice(0, 60));
     },
   };
 }
