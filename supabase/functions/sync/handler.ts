@@ -64,6 +64,15 @@ export type Validated =
   | { ok: true; deviceId: string; config: Record<string, unknown>; snapshot: Record<string, unknown>; events: Record<string, unknown>[]; startedAt: number | null }
   | { ok: false; status: number; message: string };
 
+function parseStartedAt(raw: unknown): number | null {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) return Math.trunc(raw);
+  if (typeof raw === "string" && /^\d+$/.test(raw)) {
+    const n = Number(raw);
+    return Number.isSafeInteger(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+
 export function validateBody(body: unknown): Validated {
   if (typeof body !== "object" || body === null) return { ok: false, status: 400, message: "body" };
   const b = body as Record<string, unknown>;
@@ -75,8 +84,11 @@ export function validateBody(body: unknown): Validated {
   if (!Array.isArray(b.events) || b.events.length < 1 || b.events.length > 10) {
     return { ok: false, status: 400, message: "events" };
   }
-  for (const e of b.events) { if (!isEvent(e)) return { ok: false, status: 400, message: "event" }; }
-  const startedAt = typeof b.startedAt === "number" ? b.startedAt : null;
+  for (const e of b.events) { if (!isEvent(e)) return { ok: false, status: 400, message: "event" }; };
+  // Garmin makeWebRequest sérialise les Long > int32 en string (limite
+  // documentée du runtime Monkey C) : startedAt (epoch ms) arrive souvent
+  // en "1790000716000" → on accepte les deux formes.
+  const startedAt = parseStartedAt(b.startedAt);
   return { ok: true, deviceId: b.deviceId, config: b.config as Record<string, unknown>, snapshot: b.snapshot as Record<string, unknown>, events: b.events as Record<string, unknown>[], startedAt };
 }
 
