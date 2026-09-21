@@ -14,7 +14,10 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 KEY_PATH="${DEV_KEY_PATH:-$HOME/keys/developer_key.der}"
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
-OUT="$REPO/beta-store"
+
+# Version lue dans le manifest → sortie versionnée : beta-store/v-0.1.1/…
+APP_VERSION="$(sed -n 's/.*iq:application[^>]* version="\([^"]*\)".*/\1/p' "$REPO/watch/connect-iq/manifest.xml" | head -1)"
+OUT="$REPO/beta-store/v-$APP_VERSION"
 mkdir -p "$OUT"
 
 # Arbre propre : purge des artefacts de builds précédents (.mir/.prg contiennent
