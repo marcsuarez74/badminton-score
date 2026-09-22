@@ -82,9 +82,14 @@ class SyncService {
             mStatus = SYNC_ST_OFF;
             return;
         }
-        // Tolérance de collage : settings.xml/GCM peuvent fournir la racine
-        // Supabase ; l'API Edge vit sous /functions/v1 (404 silencieux sinon).
-        if (url.find("/functions/v1") == null) { url = url + "/functions/v1"; }
+        // Tolérance de collage : l'URL de base attendue est
+        // https://…/functions/v1/sync (le slug Edge = nom du dossier). On
+        // complète selon ce que GCM/settings.xml fournissent : racine →
+        // +/functions/v1/sync ; sinon si /functions/v1 → +/sync.
+        if (url.find("/functions/v1/sync") == null) {
+            if (url.find("/functions/v1") != null) { url = url + "/sync"; }
+            else { url = url + "/functions/v1/sync"; }
+        }
         var now = System.getTimer();
         if (!mCore.shouldSend(now, mLastAttemptMs, mInFlight, mBackoffUntilMs)) { return; }
         var batch = mCore.batchSlice(engine.getEvents(), MatchStore.getPendingFrom(), 5);

@@ -8,7 +8,7 @@
              Sans défaut valide, Properties.getValue renvoie null sur matériel.
              backendUrl : défaut = backend partagé (URL publique) ; store build
              = 1 seul champ à remplir (deviceKey) en GCM. -->
-        <property id="backendUrl" type="string">https://bzdbnptnubkkagmmxhyi.supabase.co/functions/v1</property>
+        <property id="backendUrl" type="string">https://bzdbnptnubkkagmmxhyi.supabase.co/functions/v1/sync</property>
         <property id="deviceKey" type="string"></property>
     </properties>
     <settings>
