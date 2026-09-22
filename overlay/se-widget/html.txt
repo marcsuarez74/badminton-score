@@ -1,4 +1,4 @@
-<!-- BadScore — Custom Widget StreamElements : onglet HTML -->
+<!-- RacketStream — Custom Widget StreamElements : onglet HTML -->
 <div id="wrap">
   <div id="bug">
     <div class="team me">

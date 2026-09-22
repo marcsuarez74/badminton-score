@@ -1,7 +1,9 @@
-# BadScore
+# RacketStream
 
-App Garmin Connect IQ de score de badminton, synchronisée en temps réel vers un
-overlay OBS pour stream. De la montre au stream, sans aucune manipulation.
+RacketStream — app Garmin Connect IQ de score pour sports de raquette
+(badminton aujourd'hui, padel/tennis/squash en route), synchronisée en temps
+réel vers un overlay OBS pour stream. De la montre au stream, sans aucune
+manipulation.
 
 ```
 Montre (score local) ──sync──► Supabase ──Realtime──► Overlay OBS ──capture──► Stream
@@ -129,7 +131,8 @@ Structure : `watch/connect-iq/source/{engine,ui,sync,tests}` · `supabase/{migra
 
 - [x] Phase 4a — sync backend (Edge Function + Supabase + RNE)
 - [x] Phase 4b — UI « Garmin natif » (design validé, chord-aware)
-- [x] Phase 4c — identité : nom **BadScore**, icône wordmark « Bad » (zéro licence)
+- [x] Phase 4c — identité : wordmark, icône (zéro licence)
+- [x] Renommage — **BadScore → RacketStream** (repositionnement sports de raquette + streaming)
 - [x] Multi-device — clé par montre, canal par device, build ami
 - [x] Phase 5 — overlay OBS temps réel
 - [ ] Phase 6 — indicateur de service (évolution app + DB)

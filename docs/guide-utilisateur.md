@@ -1,12 +1,12 @@
-# BadScore — Guide utilisateur
+# RacketStream — Guide utilisateur
 
 *Version 1.0 — compatible Garmin Connect IQ. Ce guide est la référence pour la fiche store et la page web d'aide.*
 
 ---
 
-## 1. BadScore, c'est quoi ?
+## 1. RacketStream, c'est quoi ?
 
-BadScore transforme ta montre Garmin en **tableau de score de badminton** : un bouton par point, et le score part **tout seul** sur internet. Tes viewers suivent le match en direct :
+RacketStream transforme ta montre Garmin en **tableau de score pour sports de raquette** (badminton aujourd'hui — padel, tennis et squash en route) : un bouton par point, et le score part **tout seul** sur internet. Tes viewers suivent le match en direct :
 
 - dans la **vidéo** (bandeau de score façon retransmission TV),
 - dans le **chat** (`!score` ou annonce automatique à chaque point).
@@ -31,20 +31,20 @@ Pas besoin de compte ailleurs : le backend est **fourni et gratuit**.
 
 ### Étape 1 — Installer l'app
 1. Ouvre **Garmin Connect Mobile** → ta montre → **Activités & Apps** → **En savoir plus**
-2. Cherche **BadScore** → **Installer**
+2. Cherche **RacketStream** → **Installer**
 
 ### Étape 2 — Premier lancement
-1. Lance BadScore sur la montre
-2. L'écran affiche **« Configurez BadScore dans Garmin Connect »** : c'est normal, il faut d'abord enregistrer ta montre (étape 3)
+1. Lance RacketStream sur la montre
+2. L'écran affiche **« Configurez RacketStream dans Garmin Connect »** : c'est normal, il faut d'abord enregistrer ta montre (étape 3)
 
 ### Étape 3 — Créer ton canal et ta clé
-1. Sur ton téléphone, ouvre le **portail BadScore** (lien sur la fiche store)
+1. Sur ton téléphone, ouvre le **portail RacketStream** (lien sur la fiche store)
 2. En haut, **« Créer un canal »** : choisis un nom unique (ex. ton pseudo Twitch — c'est ce qui identifie tes matchs) puis **CRÉER**
 3. Ta **clé personnelle** s'affiche — ⚠️ elle n'est montrée **qu'une seule fois** : copie-la tout de suite (le portail pré-remplit ensuite Canal et Clé pour toi)
 4. Vérifie/choisis les **noms des joueurs** affichés à l'écran et sur l'overlay, puis **VALIDER**
 
 ### Étape 4 — Configurer Garmin Connect
-1. GCM → ta montre → **Activités & Apps** → BadScore → **Réglages**
+1. GCM → ta montre → **Activités & Apps** → RacketStream → **Réglages**
 2. **Backend URL** : pré-remplie — elle doit se terminer par `/functions/v1/sync` (ne la modifie pas sans raison)
 3. Colle ta **clé** dans **Device Key** (recopie-la intégralement, sans espace avant/après)
 4. **Redémarre ta montre** (obligatoire — Garmin Connect n'envoie les réglages à l'app qu'au redémarrage)

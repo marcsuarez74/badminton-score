@@ -1,10 +1,10 @@
-/* BadScore — Custom Widget StreamElements : onglet CSS.
+/* RacketStream — Custom Widget StreamElements : onglet CSS.
    Scorebug compact (design validé phase 5) — barre sombre translucide,
    chiffres blancs, pips de sets. */
 @import url("https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&display=swap");
 
 #wrap {
-  --team1: #2FE05C;   /* vert BadScore — camp 1 */
+  --team1: #2FE05C;   /* vert RacketStream — camp 1 */
   --team2: #E5484D;   /* rouge — camp 2 */
   --txt: #FFFFFF;
   --muted: rgba(255, 255, 255, 0.52);
