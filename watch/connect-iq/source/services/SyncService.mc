@@ -57,7 +57,13 @@ class SyncService {
         }
         if (key == null) { return "k=null"; }
         if (key.length() == 0) { return "k=0"; }
-        return "k=" + key.length() + " " + key.substring(0, 2);
+        // Checksum (somme des codes caractères, mod 65536) : le serveur
+        // publie la valeur attendue ; un écart prouve une clé altérée par
+        // le collage GCM, même à longueur identique.
+        var sum = 0;
+        var i = 0;
+        for (i = 0; i < key.length(); i += 1) { sum += key.charAt(i).toNumber(); }
+        return "k=" + key.length() + " s=" + (sum % 65536) + " " + key.substring(0, 2);
     }
 
     // Déclencheur : après chaque saveMatch (MatchView.syncScreen / startMatch)
