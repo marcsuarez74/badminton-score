@@ -81,7 +81,7 @@ if [ "$STORE_MODE" = "1" ]; then OUT="$REPO/watch/connect-iq/store"; fi
 mkdir -p "$OUT"
 for DEV in $DEVICES; do
     "$SDK/bin/monkeyc" -d "$DEV" -f "$TMP/app/monkey.jungle" \
-        -o "$OUT/badmintonscore-$DEV$SUFFIX.prg" -y "$KEY_PATH" -w -r
-    echo "OK : $OUT/badmintonscore-$DEV$SUFFIX.prg"
+        -o "$OUT/racketstream-$DEV$SUFFIX.prg" -y "$KEY_PATH" -w -r
+    echo "OK : $OUT/racketstream-$DEV$SUFFIX.prg"
 done
 echo "Prêt à sideloader : copie le .prg dans GARMIN/Apps/ de la montre."
