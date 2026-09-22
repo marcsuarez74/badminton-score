@@ -1,4 +1,4 @@
-// BadScore — Custom Widget StreamElements : onglet JS.
+// RacketStream — Custom Widget StreamElements : onglet JS.
 // Port de overlay/index.html (lecture publique Supabase via REST, clé anon).
 // Sonde toutes les 2 s : score affiché ≤ 2 s après chaque point. Choix du
 // match : le plus récent ACTIF du canal ; sinon le plus récent (final reste

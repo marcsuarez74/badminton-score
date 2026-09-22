@@ -1,7 +1,7 @@
 {
-  "channel": { "type": "string", "label": "Canal (marc / ami)", "value": "marc", "group": "BadScore" },
-  "name1": { "type": "string", "label": "Nom joueur 1", "value": "MOI", "group": "BadScore" },
-  "name2": { "type": "string", "label": "Nom joueur 2", "value": "LUI", "group": "BadScore" },
-  "scale": { "type": "number", "label": "Échelle (1 = 100%)", "value": 1, "group": "BadScore" },
-  "bg": { "type": "boolean", "label": "Panneau sombre (décocher = texte sur transparent)", "value": true, "group": "BadScore" }
+  "channel": { "type": "string", "label": "Canal (marc / ami)", "value": "marc", "group": "RacketStream" },
+  "name1": { "type": "string", "label": "Nom joueur 1", "value": "MOI", "group": "RacketStream" },
+  "name2": { "type": "string", "label": "Nom joueur 2", "value": "LUI", "group": "RacketStream" },
+  "scale": { "type": "number", "label": "Échelle (1 = 100%)", "value": 1, "group": "RacketStream" },
+  "bg": { "type": "boolean", "label": "Panneau sombre (décocher = texte sur transparent)", "value": true, "group": "RacketStream" }
 }

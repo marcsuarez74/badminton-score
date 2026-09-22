@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BadScore overlay</title>
+<title>RacketStream overlay</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +12,7 @@
   /* Scorebug compact (phase 5) — discret sur la vidéo : barre sombre
      translucide, points de couleur par camp, chiffres blancs. */
   :root {
-    --team1: #2FE05C;   /* vert BadScore — camp 1 */
+    --team1: #2FE05C;   /* vert RacketStream — camp 1 */
     --team2: #E5484D;   /* rouge — camp 2 */
     --txt: #FFFFFF;
     --muted: rgba(255, 255, 255, 0.52);
@@ -97,7 +97,7 @@
   <div id="empty">EN ATTENTE DE MATCH</div>
 </div>
 <script>
-  // BadScore overlay — lecture seule, zéro manipulation (plan phase 5).
+  // RacketStream overlay — lecture seule, zéro manipulation (plan phase 5).
   // Choix du match : le plus récent ACTIF du canal ; sinon le plus récent
   // (final reste affiché). Bascule automatique à chaque INSERT de match.
   const SUPABASE_URL = "https://bzdbnptnubkkagmmxhyi.supabase.co";
