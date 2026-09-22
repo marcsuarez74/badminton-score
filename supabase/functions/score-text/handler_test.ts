@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { formatScore, handleScoreText, type Db, type ScoreRow } from "./handler.ts";
+import { formatScore, handleScoreText, teamName, type Db, type Names, type ScoreRow } from "./handler.ts";
 
 function row(over: Partial<ScoreRow> = {}): ScoreRow {
   return {
@@ -9,10 +9,13 @@ function row(over: Partial<ScoreRow> = {}): ScoreRow {
   };
 }
 
-function makeDb(rows: ScoreRow[]): Db {
+function makeDb(rows: ScoreRow[], names: Names | null = null): Db {
   return {
     async latestMatch(_channel, activeOnly) {
       return rows.find((r) => !activeOnly || r.status === "active") ?? null;
+    },
+    async getNames(_channel) {
+      return names;
     },
   };
 }
@@ -55,4 +58,27 @@ Deno.test("aucun match : message d'attente", async () => {
 Deno.test("formatScore : ligne complète avec sets", async () => {
   assertEquals(formatScore(row({ setsMe: 2, setsOpp: 1, status: "match_finished", currentSet: 3, scoreMe: 21, scoreOpp: 15 }), "A", "B"),
     "A 21-15 B · SET 3 · Sets 2-1 · Terminé");
+});
+
+Deno.test("noms depuis la base si absents de l'URL", async () => {
+  const names: Names = { format: "simple", name1: "MARC", name1b: "", name2: "PAUL", name2b: "" };
+  const res = await get("https://fn.test/score-text?channel=marc", makeDb([row()], names));
+  assertEquals(await res.text(), "MARC 5-3 PAUL · SET 2 · Sets 1-0");
+});
+
+Deno.test("double : équipes MARC/JULES vs PAUL/HUGO", async () => {
+  const names: Names = { format: "double", name1: "MARC", name1b: "JULES", name2: "PAUL", name2b: "HUGO" };
+  const res = await get("https://fn.test/score-text?channel=marc", makeDb([row()], names));
+  assertEquals(await res.text(), "MARC/JULES 5-3 PAUL/HUGO · SET 2 · Sets 1-0");
+});
+
+Deno.test("mixte : même formatage que le double", async () => {
+  const names: Names = { format: "mixte", name1: "MARC", name1b: "JULES", name2: "PAUL", name2b: "HUGO" };
+  const res = await get("https://fn.test/score-text?channel=marc", makeDb([row()], names));
+  assertEquals(await res.text(), "MARC/JULES 5-3 PAUL/HUGO · SET 2 · Sets 1-0");
+});
+
+Deno.test("teamName : pas de slash en simple", async () => {
+  assertEquals(teamName("MARC", ""), "MARC");
+  assertEquals(teamName("MARC", "JULES"), "MARC/JULES");
 });

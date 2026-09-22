@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BadScore — Noms du match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* Portail BadScore — le même langage visuel que l'écran de la montre :
+     fond noir, vert #2FE05C, typographie Archivo, gros blocs tapables. */
+  :root {
+    --green: #2FE05C;
+    --red: #E5484D;
+    --grey: #8A8A8A;
+    --dim: #4A4A4A;
+    --txt: #FFFFFF;
+  }
+  html, body {
+    margin: 0; padding: 0; background: #000; color: var(--txt);
+    font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  .wrap { width: 100%; max-width: 420px; padding: 20px 16px 48px; box-sizing: border-box; }
+  header { text-align: center; padding: 18px 0 6px; }
+  .brand { color: var(--green); font-size: 26px; font-weight: 700; letter-spacing: 0.22em; }
+  .sub { color: var(--grey); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 6px; }
+  h2 { color: var(--grey); font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; margin: 26px 0 10px; text-align: center; }
+  .card { background: #0B0D0F; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; }
+
+  /* Tuiles de type — comme l'écran SETUP de la montre. */
+  .tiles { display: flex; flex-direction: column; gap: 10px; }
+  .tile {
+    border: 2px solid var(--dim); border-radius: 12px; background: #0B0D0F;
+    color: var(--txt); font-family: inherit; font-weight: 700; font-size: 17px;
+    letter-spacing: 0.14em; padding: 16px; cursor: pointer; text-align: center;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .tile small { display: block; color: var(--grey); font-weight: 600; font-size: 11px; letter-spacing: 0.08em; margin-top: 3px; }
+  .tile.on { border-color: var(--green); color: var(--green); background: rgba(47,224,92,0.07); }
+  .tile.on small { color: rgba(47,224,92,0.7); }
+
+  label { display: block; color: var(--grey); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; margin: 14px 0 6px; }
+  input {
+    width: 100%; box-sizing: border-box; background: #060708; color: var(--txt);
+    border: 2px solid var(--dim); border-radius: 10px; padding: 13px 14px;
+    font-family: inherit; font-size: 16px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  input:focus { outline: none; border-color: var(--green); }
+  input::placeholder { color: var(--dim); }
+
+  #validate {
+    width: 100%; margin-top: 22px; background: var(--green); color: #04180A;
+    border: none; border-radius: 12px; padding: 17px; cursor: pointer;
+    font-family: inherit; font-size: 18px; font-weight: 700; letter-spacing: 0.18em;
+  }
+  #validate:active { transform: translateY(1px); }
+  #validate[disabled] { opacity: 0.45; }
+
+  #status { text-align: center; min-height: 22px; margin-top: 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; }
+  #status.ok { color: var(--green); }
+  #status.err { color: var(--red); }
+
+  details { margin-top: 26px; }
+  summary { color: var(--grey); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+  summary::marker { color: var(--dim); }
+  .muted { color: var(--grey); font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">BADSCORE</div>
+    <div class="sub">Noms du match</div>
+  </header>
+
+  <details open id="setup">
+    <summary>Canal et clé</summary>
+    <div class="card" style="margin-top:10px">
+      <label for="channel">Canal</label>
+      <input id="channel" placeholder="ton canal" autocomplete="off">
+      <label for="key">Clé device</label>
+      <input id="key" placeholder="ta clé personnelle" autocomplete="off">
+      <div class="muted">Saisis une seule fois — mémorisé sur ce téléphone.</div>
+    </div>
+  </details>
+
+  <h2>Type de match</h2>
+  <div class="tiles">
+    <button class="tile on" data-format="simple">SIMPLE<small>1 joueur par équipe</small></button>
+    <button class="tile" data-format="double">DOUBLE<small>2 joueurs par équipe</small></button>
+    <button class="tile" data-format="mixte">MIXTE<small>2 joueurs par équipe</small></button>
+  </div>
+
+  <h2>Noms des joueurs</h2>
+  <div class="card">
+    <label for="name1">Équipe 1 — joueur 1</label>
+    <input id="name1" maxlength="24" placeholder="MARC" autocomplete="off">
+    <div id="b1">
+      <label for="name1b">Équipe 1 — joueur 2</label>
+      <input id="name1b" maxlength="24" placeholder="JULES" autocomplete="off">
+    </div>
+    <label for="name2">Équipe 2 — joueur 1</label>
+    <input id="name2" maxlength="24" placeholder="PAUL" autocomplete="off">
+    <div id="b2">
+      <label for="name2b">Équipe 2 — joueur 2</label>
+      <input id="name2b" maxlength="24" placeholder="HUGO" autocomplete="off">
+    </div>
+  </div>
+
+  <button id="validate">VALIDER</button>
+  <div id="status"></div>
+</div>
+
+<script>
+  // Portail des noms — zéro framework, une seule requête au backend.
+  // GET  /names?channel=…  (public)  → pré-remplissage
+  // POST /names  (X-Device-Key)      → enregistrement
+  const SUPABASE = "https://bzdbnptnubkkagmmxhyi.supabase.co";
+  const $ = (id) => document.getElementById(id);
+  const LS = "badscore-portal";
+
+  let format = "simple";
+
+  // --- pré-remplissage depuis localStorage ---
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS) || "{}");
+    if (saved.channel) $("channel").value = saved.channel;
+    if (saved.key) $("key").value = saved.key;
+  } catch { /* premier lancement */ }
+
+  // --- tuiles de type ---
+  document.querySelectorAll(".tile").forEach((t) => t.addEventListener("click", () => {
+    format = t.dataset.format;
+    document.querySelectorAll(".tile").forEach((x) => x.classList.toggle("on", x === t));
+    $("b1").style.display = format === "simple" ? "none" : "block";
+    $("b2").style.display = format === "simple" ? "none" : "block";
+  }));
+
+  // --- pré-remplir les noms si canal connu ---
+  async function loadNames() {
+    const channel = $("channel").value.trim();
+    if (!channel) return;
+    try {
+      const res = await fetch(`${SUPABASE}/functions/v1/names?channel=${encodeURIComponent(channel)}`);
+      if (!res.ok) return;
+      const n = await res.json();
+      $("name1").value = n.name1 || "";
+      $("name1b").value = n.name1b || "";
+      $("name2").value = n.name2 || "";
+      $("name2b").value = n.name2b || "";
+      format = n.format || "simple";
+      document.querySelectorAll(".tile").forEach((x) => x.classList.toggle("on", x.dataset.format === format));
+      $("b1").style.display = format === "simple" ? "none" : "block";
+      $("b2").style.display = format === "simple" ? "none" : "block";
+    } catch { /* hors ligne : champs vides */ }
+  }
+  $("channel").addEventListener("change", loadNames);
+  loadNames();
+
+  // --- valider ---
+  function status(msg, cls) {
+    const s = $("status");
+    s.textContent = msg;
+    s.className = cls || "";
+  }
+
+  $("validate").addEventListener("click", async () => {
+    const channel = $("channel").value.trim();
+    const key = $("key").value.trim();
+    const body = {
+      format,
+      name1: $("name1").value.trim(),
+      name1b: $("name1b").value.trim(),
+      name2: $("name2").value.trim(),
+      name2b: $("name2b").value.trim(),
+    };
+    if (!channel || !key) { status("Canal et clé requis", "err"); return; }
+    if (format !== "simple" && (!body.name1b || !body.name2b)) { status("Partenaires requis en double/mixte", "err"); return; }
+    $("validate").disabled = true;
+    status("Enregistrement…");
+    try {
+      const res = await fetch(`${SUPABASE}/functions/v1/names`, {
+        method: "POST",
+        headers: { "X-Device-Key": key, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        localStorage.setItem(LS, JSON.stringify({ channel, key }));
+        status("ENREGISTRÉ ✓ — le chat et l'overlay suivent dès le prochain point", "ok");
+      } else if (res.status === 401) {
+        status("Clé refusée (401) — recopie-la depuis le portail d'enregistrement", "err");
+      } else {
+        status("Erreur " + res.status + " — réessaie", "err");
+      }
+    } catch {
+      status("Réseau indisponible — réessaie", "err");
+    }
+    $("validate").disabled = false;
+  });
+</script>
+</body>
+</html>

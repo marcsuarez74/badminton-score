@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleSync, type Db } from "./handler.ts";
 import { makeSeSender } from "../_shared/announce.ts";
+import { teamName } from "../score-text/handler.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -60,12 +61,12 @@ const db: Db = {
   },
   async getAnnounceCfg(channel) {
     const { data } = await supabase.from("devices")
-      .select("se_channel_id, name1, name2").eq("channel", channel).maybeSingle();
+      .select("se_channel_id, name1, name1b, name2, name2b").eq("channel", channel).maybeSingle();
     if (!data) return null;
     return {
       seChannelId: (data.se_channel_id as string | null) ?? null,
-      name1: String(data.name1 ?? "MOI"),
-      name2: String(data.name2 ?? "LUI"),
+      name1: teamName(String(data.name1 ?? "MOI"), String(data.name1b ?? "")),
+      name2: teamName(String(data.name2 ?? "LUI"), String(data.name2b ?? "")),
     };
   },
   async lastAnnounced(channel) {
