@@ -42,7 +42,7 @@ avec une clé device dédiée (canal `ami`).
 
 ## Overlay OBS
 
-URL : **https://marcsuarez74.github.io/badminton-score/overlay/?channel=marc**
+URL : **https://marcsuarez74.github.io/racketstream/overlay/?channel=marc**
 
 Dans OBS : Sources → + → **Navigateur** → coller l'URL, 1280×200, « Effacer le
 fond » inutile (la page est déjà transparente). L'overlay suit automatiquement
