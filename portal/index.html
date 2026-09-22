@@ -57,6 +57,13 @@
     border: none; border-radius: 12px; padding: 17px; cursor: pointer;
     font-family: inherit; font-size: 18px; font-weight: 700; letter-spacing: 0.18em;
   }
+  .ghost {
+    width: 100%; background: transparent; color: var(--green);
+    border: 2px solid var(--green); border-radius: 10px; padding: 12px;
+    cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+  .ghost:active { transform: translateY(1px); }
   #validate:active { transform: translateY(1px); }
   #validate[disabled] { opacity: 0.45; }
 
@@ -76,6 +83,20 @@
     <div class="brand">BADSCORE</div>
     <div class="sub">Noms du match</div>
   </header>
+
+  <details open id="register">
+    <summary>Créer un canal</summary>
+    <div class="card" style="margin-top:10px">
+      <label for="newChannel">Nom du canal (ton pseudo Twitch par ex.)</label>
+      <input id="newChannel" maxlength="32" placeholder="paul" autocomplete="off">
+      <button id="create" style="margin-top:12px" class="ghost">CRÉER</button>
+      <div id="regOut" class="muted" style="display:none">
+        <div style="margin-top:10px">Ta clé personnelle — <b>affichée une seule fois</b> :</div>
+        <textarea id="regKey" readonly style="width:100%;box-sizing:border-box;background:#060708;color:var(--green);border:1px solid var(--dim);border-radius:8px;padding:10px;font-family:monospace;font-size:13px;margin-top:6px;height:64px"></textarea>
+        <div style="margin-top:8px">Recopie-la maintenant. Elle alimente ce portail et les Réglages GCM de ta montre.</div>
+      </div>
+    </div>
+  </details>
 
   <details open id="setup">
     <summary>Canal et clé</summary>
@@ -164,6 +185,39 @@
   }
   $("channel").addEventListener("change", loadNames);
   loadNames();
+
+  // --- créer un canal ---
+  $("create").addEventListener("click", async () => {
+    const channel = $("newChannel").value.trim();
+    if (!channel) { status("Choisis un nom de canal", "err"); return; }
+    $("create").disabled = true;
+    status("Création…");
+    try {
+      const res = await fetch(`${SUPABASE}/functions/v1/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        $("regKey").value = data.key;
+        $("regOut").style.display = "block";
+        $("channel").value = data.channel;
+        $("key").value = data.key;
+        localStorage.setItem(LS, JSON.stringify({ channel: data.channel, key: data.key }));
+        status("Canal créé ✓", "ok");
+        $("setup").open = true;
+        loadNames();
+      } else if (res.status === 409) {
+        status("Canal déjà pris — choisis-en un autre", "err");
+      } else {
+        status("Erreur " + res.status + " — réessaie", "err");
+      }
+    } catch {
+      status("Réseau indisponible — réessaie", "err");
+    }
+    $("create").disabled = false;
+  });
 
   // --- valider ---
   function status(msg, cls) {

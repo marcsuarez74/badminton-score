@@ -425,3 +425,6 @@ verify_jwt = false
 
 [functions.names]
 verify_jwt = false
+
+[functions.register]
+verify_jwt = false
