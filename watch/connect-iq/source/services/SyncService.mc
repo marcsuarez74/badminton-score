@@ -47,22 +47,6 @@ class SyncService {
         return mLastError;
     }
 
-    // Ce que la montre lit VRAIMENT dans la config (diagnostic parcours
-    // GCM) : longueur + 2 premiers caractères de la clé, ex. "k=64 34".
-    function getDeviceKeyInfo() as String {
-        var key = BackendConfig.DEVICE_KEY;
-        if (key == null || key.equals("")) {
-            var pKey = Properties.getValue("deviceKey");
-            if (pKey != null) { key = pKey.toString(); }
-        }
-        if (key == null) { return "k=null"; }
-        if (key.length() == 0) { return "k=0"; }
-        // Extraits début/milieu/fin : l'utilisateur compare avec la clé
-        // affichée dans GCM ; un écart au milieu prouve un collage altéré
-        // (longueur et préfixe identiques ne suffisent pas).
-        return "k=" + key.length() + " b=" + key.substring(0, 4) + " m=" + key.substring(30, 32) + " e=" + key.substring(62, 64);
-    }
-
     // Déclencheur : après chaque saveMatch (MatchView.syncScreen / startMatch)
     // et au lancement (flush §9.4). Configuration absente → inactif (graceful).
     function trigger(engine as ScoreEngine or Null) as Void {
