@@ -133,12 +133,18 @@
   } catch { /* premier lancement */ }
 
   // --- tuiles de type ---
+  // Simple = UN joueur par équipe : les partenaires disparaissent entièrement.
+  function applyFormat() {
+    const dbl = format !== "simple";
+    $("b1").style.display = dbl ? "block" : "none";
+    $("b2").style.display = dbl ? "block" : "none";
+    document.querySelectorAll(".tile").forEach((x) => x.classList.toggle("on", x.dataset.format === format));
+  }
   document.querySelectorAll(".tile").forEach((t) => t.addEventListener("click", () => {
     format = t.dataset.format;
-    document.querySelectorAll(".tile").forEach((x) => x.classList.toggle("on", x === t));
-    $("b1").style.display = format === "simple" ? "none" : "block";
-    $("b2").style.display = format === "simple" ? "none" : "block";
+    applyFormat();
   }));
+  applyFormat();
 
   // --- pré-remplir les noms si canal connu ---
   async function loadNames() {
@@ -153,9 +159,7 @@
       $("name2").value = n.name2 || "";
       $("name2b").value = n.name2b || "";
       format = n.format || "simple";
-      document.querySelectorAll(".tile").forEach((x) => x.classList.toggle("on", x.dataset.format === format));
-      $("b1").style.display = format === "simple" ? "none" : "block";
-      $("b2").style.display = format === "simple" ? "none" : "block";
+      applyFormat();
     } catch { /* hors ligne : champs vides */ }
   }
   $("channel").addEventListener("change", loadNames);
