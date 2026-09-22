@@ -15,6 +15,21 @@ export interface ScoreRow {
 export interface Db {
   // Match actif le plus récent du canal ; fallback : le plus récent tout statut.
   latestMatch(channel: string, activeOnly: boolean): Promise<ScoreRow | null>;
+  // Réglages d'affichage du canal (format + noms) ; null si canal inconnu.
+  getNames(channel: string): Promise<Names | null>;
+}
+
+export interface Names {
+  format: string;
+  name1: string;
+  name1b: string;
+  name2: string;
+  name2b: string;
+}
+
+// "MARC/JULES" en double-mixte, "MARC" en simple.
+export function teamName(a: string, b: string): string {
+  return b ? `${a}/${b}` : a;
 }
 
 export function plain(status: number, text: string): Response {
@@ -40,8 +55,19 @@ export async function handleScoreText(req: Request, db: Db): Promise<Response> {
   const u = new URL(req.url);
   const channel = (u.searchParams.get("channel") || "marc").slice(0, 32);
   if (!/^[A-Za-z0-9_-]+$/.test(channel)) return plain(400, "channel");
-  const name1 = (u.searchParams.get("name1") || "MOI").slice(0, 24);
-  const name2 = (u.searchParams.get("name2") || "LUI").slice(0, 24);
+  // Noms : URL d'abord (compat StreamElements sans &), sinon réglages du
+  // canal en base — c'est ce qui permet de changer d'adversaire en plein
+  // tournoi depuis la page portail.
+  let name1 = u.searchParams.get("name1");
+  let name2 = u.searchParams.get("name2");
+  if (name1 == null || name2 == null) {
+    const cfg = await db.getNames(channel);
+    name1 = name1 ?? teamName(cfg?.name1 ?? "MOI", cfg?.name1b ?? "");
+    name2 = name2 ?? teamName(cfg?.name2 ?? "LUI", cfg?.name2b ?? "");
+  } else {
+    name1 = name1.slice(0, 24);
+    name2 = name2.slice(0, 24);
+  }
 
   const active = await db.latestMatch(channel, true);
   if (active) {

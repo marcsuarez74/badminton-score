@@ -1,10 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleScoreText, type Db, type ScoreRow } from "./handler.ts";
 
-// Lecture publique (RLS SELECT anon) — même posture que l'overlay.
+// Service role : matches/match_state sont lisibles anon (RLS SELECT), mais
+// devices porte le hash de la clé (jamais exposé) — getNames passe donc par
+// le service role et n'exporte que les noms publics du canal.
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_ANON_KEY")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
 function toScoreRow(m: Record<string, unknown> | null): ScoreRow | null {
@@ -33,6 +35,18 @@ const db: Db = {
     const { data, error } = await req;
     if (error || !data || data.length === 0) return null;
     return toScoreRow(data[0]);
+  },
+  async getNames(channel) {
+    const { data, error } = await supabase.from("devices")
+      .select("format, name1, name1b, name2, name2b").eq("channel", channel).maybeSingle();
+    if (error || !data) return null;
+    return {
+      format: String(data.format ?? "simple"),
+      name1: String(data.name1 ?? ""),
+      name1b: String(data.name1b ?? ""),
+      name2: String(data.name2 ?? ""),
+      name2b: String(data.name2b ?? ""),
+    };
   },
 };
 

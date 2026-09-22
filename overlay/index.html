@@ -106,12 +106,25 @@
   const CHANNEL = q.get("channel") || "marc";
   const SCALE = parseFloat(q.get("scale") || "1");
   const SHOW_PANELS = q.get("bg") !== "0";
-  const NAME1 = q.get("name1") || "MOI";
-  const NAME2 = q.get("name2") || "LUI";
+  // Noms : paramètres URL d'abord (rétro-compat), sinon réglages du canal
+  // (portail) — c'est ce qui permet de changer d'adversaire sans toucher à OBS.
+  const NAME1 = q.get("name1");
+  const NAME2 = q.get("name2");
 
   const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
-  document.getElementById("n1").textContent = NAME1;
-  document.getElementById("n2").textContent = NAME2;
+  document.getElementById("n1").textContent = NAME1 || "MOI";
+  document.getElementById("n2").textContent = NAME2 || "LUI";
+  const teamName = (a, b) => b ? `${a}/${b}` : a;
+  if (NAME1 == null || NAME2 == null) {
+    fetch(`${SUPABASE_URL}/functions/v1/names?channel=${encodeURIComponent(CHANNEL)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((n) => {
+        if (!n) return;
+        if (NAME1 == null) document.getElementById("n1").textContent = teamName(n.name1, n.name1b);
+        if (NAME2 == null) document.getElementById("n2").textContent = teamName(n.name2, n.name2b);
+      })
+      .catch(() => { /* hors ligne : défauts MOI/LUI */ });
+  }
   if (!SHOW_PANELS) {
     const bug = document.getElementById("bug");
     bug.style.background = "transparent";

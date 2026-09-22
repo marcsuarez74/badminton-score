@@ -37,6 +37,18 @@ const scoreDb: ScoreDb = {
     if (error || !data || data.length === 0) return null;
     return toScoreRow(data[0]);
   },
+  async getNames(channel) {
+    const { data, error } = await supabase.from("devices")
+      .select("format, name1, name1b, name2, name2b").eq("channel", channel).maybeSingle();
+    if (error || !data) return null;
+    return {
+      format: String(data.format ?? "simple"),
+      name1: String(data.name1 ?? ""),
+      name1b: String(data.name1b ?? ""),
+      name2: String(data.name2 ?? ""),
+      name2b: String(data.name2b ?? ""),
+    };
+  },
 };
 
 const db: AnnounceDb = {

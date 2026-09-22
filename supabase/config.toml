@@ -422,3 +422,6 @@ verify_jwt = false
 
 [functions.chat-announce]
 verify_jwt = false
+
+[functions.names]
+verify_jwt = false
