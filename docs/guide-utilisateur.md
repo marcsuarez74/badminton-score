@@ -37,10 +37,11 @@ Pas besoin de compte ailleurs : le backend est **fourni et gratuit**.
 1. Lance BadScore sur la montre
 2. L'écran affiche **« Configurez BadScore dans Garmin Connect »** : c'est normal, il faut d'abord enregistrer ta montre (étape 3)
 
-### Étape 3 — Enregistrer ta montre (obtenir ta clé)
-1. Sur ton téléphone, ouvre le **portail d'enregistrement BadScore** (lien sur la fiche store)
-2. Choisis un **canal** (un nom unique, ex. ton pseudo Twitch — c'est ce qui identifie tes matchs) et les **noms des joueurs** affichés
-3. Le portail affiche **ta clé personnelle** — ⚠️ elle n'est montrée **qu'une seule fois**, copie-la tout de suite
+### Étape 3 — Créer ton canal et ta clé
+1. Sur ton téléphone, ouvre le **portail BadScore** (lien sur la fiche store)
+2. En haut, **« Créer un canal »** : choisis un nom unique (ex. ton pseudo Twitch — c'est ce qui identifie tes matchs) puis **CRÉER**
+3. Ta **clé personnelle** s'affiche — ⚠️ elle n'est montrée **qu'une seule fois** : copie-la tout de suite (le portail pré-remplit ensuite Canal et Clé pour toi)
+4. Vérifie/choisis les **noms des joueurs** affichés à l'écran et sur l'overlay, puis **VALIDER**
 
 ### Étape 4 — Configurer Garmin Connect
 1. GCM → ta montre → **Activités & Apps** → BadScore → **Réglages**
@@ -79,7 +80,7 @@ Lance un match et marque un point : un **liseré vert** apparaît autour de l'é
 | 🔴 Liseré rouge + code (ex. « sync 401 ») | le serveur a refusé l'envoi ; nouvel essai automatique en arrière-plan | voir les codes ci-dessous |
 
 **Codes affichés en rouge** :
-- **401** → ta clé est refusée : recopie-la depuis le portail d'enregistrement (sans espace), re-valide les réglages, redémarre la montre
+- **401** → ta clé est refusée : recopie-la depuis le portail (sans espace), re-valide les réglages, redémarre la montre
 - **404** → Backend URL incomplète : elle doit se terminer par `/functions/v1/sync`
 - **t/o** → pas de réseau : téléphone appairé en Bluetooth et GCM actif (non « tué » par l'économiseur de batterie)
 - Tout autre code → réessaie plus tard, la reprise est automatique
@@ -117,7 +118,7 @@ Il suit **automatiquement** ton match actif — rien à toucher entre les matchs
 → Garmin Connect n'envoie les réglages à la montre qu'à la validation du formulaire **et** au redémarrage : re-valide les Réglages (sans rien changer) puis redémarre la montre. Vérifie aussi que la clé fait bien 64 caractères, sans espace.
 
 **Je ne trouve plus ma clé.**
-→ Reviens sur le portail d'enregistrement et régénère une clé (l'ancienne est invalidée).
+→ Un canal ne peut pas être recréé (le nom est réservé). Demande une nouvelle clé via la page support — l'ancienne sera invalidée et une nouvelle clé générée pour ton canal.
 
 **Deux matchs s'affichent en même temps ?**
 → Impossible par design : créer un nouveau match **clôture automatiquement** le précédent de ta montre.
