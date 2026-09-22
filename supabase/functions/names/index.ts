@@ -44,7 +44,18 @@ async function sha256Hex(s: string): Promise<string> {
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-Deno.serve((req: Request) => {
-  if (req.method === "GET") return handleNamesGet(req, db);
-  return handleNamesPost(req, db);
+// CORS : la page portail (GitHub Pages) et l'overlay appellent cette fonction
+// cross-origin — sans ces en-têtes, le preflight OPTIONS échoue et le navigateur
+// rapporte « réseau indisponible ».
+const CORS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "X-Device-Key, Content-Type",
+  "Access-Control-Allow-Methods": "GET, POST",
+};
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  const res = req.method === "GET" ? await handleNamesGet(req, db) : await handleNamesPost(req, db);
+  for (const [k, v] of Object.entries(CORS)) res.headers.set(k, v);
+  return res;
 });
