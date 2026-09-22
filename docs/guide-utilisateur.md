@@ -111,7 +111,7 @@ Il suit **automatiquement** ton match actif — rien à toucher entre les matchs
 → Lis le code affiché (401 / 404 / t/o — voir « Le liseré de sync » ci-dessus). Le plus fréquent : **401** = clé mal recopiée ou réglages non re-synchronisés → re-valide les réglages dans GCM **puis redémarre la montre**. La reprise est automatique (backoff jusqu'à 2 min).
 
 **L'overlay ne change pas alors que j'ai marqué.**
-→ Latence normale de sync par lots (5-10 s en rafale). Si ça dure > 2 min, vérifie le point de sync et le canal dans l'URL de l'overlay.
+→ Latence normale de sync par lots (5-10 s en rafale). Si ça dure > 2 min, vérifie le liseré de sync et le canal dans l'URL de l'overlay.
 
 **J'ai recollé ma clé, toujours rouge 401.**
 → Garmin Connect n'envoie les réglages à la montre qu'à la validation du formulaire **et** au redémarrage : re-valide les Réglages (sans rien changer) puis redémarre la montre. Vérifie aussi que la clé fait bien 64 caractères, sans espace.
