@@ -35,7 +35,7 @@ Pas besoin de compte ailleurs : le backend est **fourni et gratuit**.
 
 ### Étape 2 — Premier lancement
 1. Lance BadScore sur la montre
-2. L'écran affiche **« Configurez BadScore dans Garmin Connect »** avec un **point sombre** en haut à droite : c'est normal, il faut d'abord enregistrer ta montre (étape 3)
+2. L'écran affiche **« Configurez BadScore dans Garmin Connect »** : c'est normal, il faut d'abord enregistrer ta montre (étape 3)
 
 ### Étape 3 — Enregistrer ta montre (obtenir ta clé)
 1. Sur ton téléphone, ouvre le **portail d'enregistrement BadScore** (lien sur la fiche store)
@@ -44,11 +44,12 @@ Pas besoin de compte ailleurs : le backend est **fourni et gratuit**.
 
 ### Étape 4 — Configurer Garmin Connect
 1. GCM → ta montre → **Activités & Apps** → BadScore → **Réglages**
-2. Colle ta **clé** dans le champ (c'est le seul réglage à faire)
-3. **Redémarre ta montre** (obligatoire — Garmin Connect n'envoie les réglages à l'app qu'au redémarrage)
+2. **Backend URL** : pré-remplie — elle doit se terminer par `/functions/v1/sync` (ne la modifie pas sans raison)
+3. Colle ta **clé** dans **Device Key** (recopie-la intégralement, sans espace avant/après)
+4. **Redémarre ta montre** (obligatoire — Garmin Connect n'envoie les réglages à l'app qu'au redémarrage)
 
 ### Étape 5 — Vérifier
-Relance BadScore : le point en haut à droite doit passer **vert** (au premier point marqué). C'est prêt. 🏸
+Lance un match et marque un point : un **liseré vert** apparaît autour de l'écran (~1-2 s) puis disparaît — c'est la confirmation d'envoi. C'est prêt. 🏸
 
 ---
 
@@ -69,14 +70,19 @@ Relance BadScore : le point en haut à droite doit passer **vert** (au premier p
 - Fin de match : le score final reste affiché (et en ligne) jusqu'à ton prochain match
 - Tu te trompes ? **UP annule** le dernier point, y compris après la confirmation de set
 
-### Le point de sync (en haut à droite de l'écran score)
+### Le liseré de sync (autour du cadre de l'écran, pendant un match)
 
-| Couleur | Signification | À faire |
+| Signal | Signification | À faire |
 |---|---|---|
-| 🟢 Vert | dernier envoi confirmé par le serveur | rien |
-| ⚪ Gris | envoi en cours | rien |
-| 🔴 Rouge | erreur réseau (nouvel essai automatique en arrière-plan) | vérifier téléphone (Bluetooth) et GCM ; ça reprend tout seul |
-| ⚫ Sombre | app non configurée | refaire l'installation (étapes 3-4) |
+| 🟢 Liseré vert bref (~1-2 s) | envoi en cours puis confirmé | rien — c'est le fonctionnement normal |
+| Rien | connecté, tout est à jour | rien |
+| 🔴 Liseré rouge + code (ex. « sync 401 ») | le serveur a refusé l'envoi ; nouvel essai automatique en arrière-plan | voir les codes ci-dessous |
+
+**Codes affichés en rouge** :
+- **401** → ta clé est refusée : recopie-la depuis le portail d'enregistrement (sans espace), re-valide les réglages, redémarre la montre
+- **404** → Backend URL incomplète : elle doit se terminer par `/functions/v1/sync`
+- **t/o** → pas de réseau : téléphone appairé en Bluetooth et GCM actif (non « tué » par l'économiseur de batterie)
+- Tout autre code → réessaie plus tard, la reprise est automatique
 
 > ℹ️ **La sync fonctionne par lots** : la montre envoie les points par groupes (≤ 5, toutes les 5 s minimum) — une contrainte du Bluetooth. Si tu marque plusieurs points en rafale, l'overlay les suit par paliers de 5 à 10 s. Dans un vrai match (un échange toutes les 10-30 s), chaque point arrive en 1 à 3 s.
 
@@ -101,14 +107,14 @@ Il suit **automatiquement** ton match actif — rien à toucher entre les matchs
 
 ## 6. Dépannage (FAQ)
 
-**Le point reste rouge.**
-→ La montre n'arrive pas à joindre le serveur : vérifie que le téléphone est appairé en Bluetooth, que GCM tourne en arrière-plan (non « tuée » par l'économiseur de batterie), puis attends — la reprise est automatique (backoff jusqu'à 2 min).
+**Le liseré reste rouge.**
+→ Lis le code affiché (401 / 404 / t/o — voir « Le liseré de sync » ci-dessus). Le plus fréquent : **401** = clé mal recopiée ou réglages non re-synchronisés → re-valide les réglages dans GCM **puis redémarre la montre**. La reprise est automatique (backoff jusqu'à 2 min).
 
 **L'overlay ne change pas alors que j'ai marqué.**
 → Latence normale de sync par lots (5-10 s en rafale). Si ça dure > 2 min, vérifie le point de sync et le canal dans l'URL de l'overlay.
 
-**J'ai changé un réglage dans GCM, rien ne bouge.**
-→ **Redémarre la montre** : Garmin Connect n'injecte les réglages qu'au redémarrage.
+**J'ai recollé ma clé, toujours rouge 401.**
+→ Garmin Connect n'envoie les réglages à la montre qu'à la validation du formulaire **et** au redémarrage : re-valide les Réglages (sans rien changer) puis redémarre la montre. Vérifie aussi que la clé fait bien 64 caractères, sans espace.
 
 **Je ne trouve plus ma clé.**
 → Reviens sur le portail d'enregistrement et régénère une clé (l'ancienne est invalidée).
