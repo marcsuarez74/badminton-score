@@ -281,10 +281,11 @@ class MatchView extends WatchUi.View {
         if (t < 2) { t = 2; }
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         // Code d'erreur affiché en haut-centre (diagnostic 0.1.2) : "401",
-        // "404", "t/o"… pour distinguer clé refusée / URL / réseau.
+        // "404", "t/o"… pour distinguer clé refusée / URL / réseau. En 0.1.3 :
+        // + ce que la montre lit réellement comme clé (longueur + 2 chars).
         if (st == SYNC_ST_ERR) {
             var err = mSync.getLastError();
-            var label = "sync " + (err == -1 ? "t/o" : err);
+            var label = "sync " + (err == -1 ? "t/o" : err) + " " + mSync.getDeviceKeyInfo();
             dc.drawText(w / 2, h / 12, Graphics.FONT_TINY, label, Graphics.TEXT_JUSTIFY_CENTER);
         }
         if (System.getDeviceSettings().screenShape == System.SCREEN_SHAPE_ROUND) {
