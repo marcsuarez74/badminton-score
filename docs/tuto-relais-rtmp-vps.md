@@ -19,15 +19,18 @@ Téléphone (VDO.Ninja, WebRTC/WHIP)
 ┌─────────────────────────────────────────────────────────┐
 │ VPS Ubuntu 24.04+                                       │
 │                                                         │
-│  MediaMTX (:1935 RTMP, :8889 WHIP, metrics localhost)   │
+│  MediaMTX (:1935 RTMP, :8554 RTSP, :8889 WHIP,          │
+│   metrics localhost)                                    │
 │   └─ runOnInit : lance le composite à la publication,   │
 │      le tue à la déconnexion                            │
 │                                                         │
 │  ffmpeg-relay                                           │
-│   ├─ entrée 1 : rtmp://127.0.0.1:1935/live/<VPS_KEY>    │
+│   ├─ entrée 1 : rtsp://127.0.0.1:8554/live/<VPS_KEY>    │
+│   │            (TCP — le RTMP interne rejette l'Opus)   │
 │   ├─ entrée 2 : le renderer (frames RGBA 2 fps, pipe)   │
-│   ├─ filter_complex : overlay=0:0                       │
-│   └─ sortie : Twitch (libx264 720p30 ~4500k, audio copy)│
+│   ├─ filter_complex : pillarbox + overlay=0:0           │
+│   └─ sortie : Twitch (libx264 720p30 ~4500k,            │
+│      audio Opus -> AAC 128k)                            │
 │                                                         │
 │  renderer (Python + Pillow, fichier vps/renderer.py)    │
 │   ├─ lit le match sur Supabase (REST anon, 1 s)         │
@@ -118,7 +121,7 @@ logLevel: info
 api: no
 metrics: yes
 metricsAddress: 127.0.0.1:9998
-rtsp: no
+rtsp: yes
 rtmp: yes
 rtmpAddress: :1935
 hls: no
@@ -170,9 +173,9 @@ L'aperçu `/tmp/scorebug.png` (fond transparent) doit contenir le scorebug — o
 
 ```bash
 #!/bin/bash
-# RacketStream composite : vidéo téléphone + scorebug -> Twitch
-# MediaMTX envoie TERM à la déconnexion -> on tue tout le groupe
-# (renderer + ffmpeg), sinon les zombies bloquent la session suivante.
+# RacketStream composite : vidéo téléphone + scorebug renderer -> destination RTMP
+# Cycle de vie : MediaMTX envoie TERM à la déconnexion -> on tue tout le groupe
+# (le renderer + ffmpeg), sinon les zombies bloquent la session suivante.
 set -uo pipefail
 source /etc/racketstream/env
 : "${RTMP_OUT:=rtmp://cdg.contribute.live-video.net/app/${TWITCH_KEY:-}}"
@@ -184,13 +187,13 @@ CHANNEL="${RENDER_CHANNEL:-<CHANNEL>}"
 cleanup() { kill 0 2>/dev/null; }
 trap cleanup TERM INT
 python3 /opt/racketstream/renderer.py --channel "$CHANNEL" --interval "${RENDER_INTERVAL:-2}" 2>>/tmp/racketstream-renderer.log | ffmpeg -hide_banner -loglevel warning \
-  -i "rtmp://127.0.0.1:1935/live/$VPS_KEY" \
+  -rtsp_transport tcp -i "rtsp://127.0.0.1:8554/live/$VPS_KEY" \
   -f rawvideo -pix_fmt rgba -s 1280x720 -r 2 -i - \
-  -filter_complex "[0:v]scale=1280:720,format=yuv420p[v0];[v0][1:v]overlay=0:0:format=auto[out]" \
+  -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,setsar=1,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0];[v0][1:v]overlay=0:0:format=auto[out]" \
   -map "[out]" -map 0:a \
-  -c:v libx264 -preset veryfast -tune zerolatency -b:v 4500k -maxrate 4500k -bufsize 9000k \
-  -g 60 -pix_fmt yuv420p \
-  -c:a copy \
+  -c:v libx264 -preset veryfast -tune zerolatency -b:v 4500k -maxrate 4500k -bufsize 4500k \
+  -g 30 -pix_fmt yuv420p \
+  -c:a aac -b:a 128k \
   -f flv "$RTMP_OUT"
 cleanup
 ```
@@ -200,6 +203,16 @@ sudo chmod 755 /usr/local/bin/ffmpeg-relay
 sudo systemctl restart mediamtx
 ```
 
+> 🔴 **Le piège n°5** : VDO.Ninja publie la vidéo **H264** mais l'audio en **Opus**, et le RTMP
+> **rejette l'Opus** (`skipping track 2 (Opus)` → le composite meurt). D'où l'entrée
+> **RTSP** (`rtsp: yes` + `-rtsp_transport tcp`) avec transcodage audio **AAC** : le RTSP
+> interne accepte l'Opus, ffmpeg le convertit en AAC pour Twitch. Sans `-rtsp_transport tcp`,
+> ffmpeg négocie le RTSP en UDP et **bloque silencieusement** (0 octet consommé).
+>
+> 💡 **Le pillarbox** : `force_original_aspect_ratio=decrease` + `pad` : si le téléphone tourne
+> en portrait, l'image garde ses proportions centrée sur fond noir au lieu d'être déformée.
+> Le scorebug reste en haut à droite dans tous les cas.
+>
 > 💡 Pour tester **sans Twitch** : ajoute temporairement `RTMP_OUT=/tmp/test.flv` dans
 > `/etc/racketstream/env`, streame, puis extrais une frame :
 > `ffmpeg -y -ss 3 -i /tmp/test.flv -frames:v 1 -update 1 frame.png`
@@ -233,8 +246,19 @@ La clé ne doit **jamais** être collée dans un commit, un chat ou une capture.
 
 1. *Publishing settings* → **Enable WHIP output**
 2. **WHIP URL** : `http://203.0.113.10:8889/live/<VPS_KEY>/whip` (Stream Key : **vide** — la clé est dans l'URL)
-3. Mode : **WHIP only**
+3. Mode : **WHIP only**, caméra **arrière**
 4. Lance : la caméra arrive sur le VPS, le composite démarre tout seul, Twitch passe « live » ~20 s plus tard.
+
+> 🔴 **Le piège n°6 — l'image figée** : quand l'écran du téléphone s'éteint ou que l'app passe
+> en arrière-plan, **Android fige la capture caméra** (économie de batterie) tout en gardant la
+> session WebRTC vivante : le direct continue de diffuser la même image. Pendant un match :
+> **écran allumé, app en premier plan, téléphone au chargeur**, économiseur de batterie désactivé,
+> rotation verrouillée en **paysage**.
+>
+> 🔴 **Le piège n°7 — le canal occupé** : si tu relances VDO.Ninja sans avoir réussi à couper
+> l'ancienne session, le nouveau flux est **refusé** (le path est déjà pris) et le direct
+> diffuse l'ancien. Symptôme : « la source ne change pas ». Fix radical côté VPS :
+> `sudo systemctl restart mediamtx` (éjecte toutes les sessions), puis relance l'app.
 
 > ℹ️ **Pourquoi VDO.Ninja et pas Larix Broadcaster ?** Larix est excellent mais son modèle
 > gratuit inclut un watermark périodique incrusté dans la vidéo, une limite de 30 min, et le
@@ -261,7 +285,7 @@ La clé ne doit **jamais** être collée dans un commit, un chat ou une capture.
 |---|---|
 | Point → montre → cloud (sync BLE) | ~2-5 s |
 | Renderer (poll 1 s) | ~0,5-1 s |
-| Composite + encode | ~0,5 s |
+| Composite + encode | ~0,5-1 s (bufsize 4500k = 1 s de tampon max) |
 | Twitch ingest → viewer | 10-20 s (incompressible) |
 | **Total point → viewer** | **~15-25 s** |
 
@@ -278,6 +302,11 @@ Twitch prend la moitié, on travaille sur les 2-3 premières secondes (créneau 
 | Le téléphone streame, rien sur Twitch | firewall amont du fournisseur (sortie/entrée) | check-host.net + le dashboard fournisseur |
 | `Permission denied` sur `/etc/racketstream/env` dans le journal | mode 600 au lieu de 640 | `sudo chmod 640 /etc/racketstream/env` |
 | Le composite ne se relance pas à la re-publication | zombie (renderer/ffmpeg orphelins) | `sudo pkill -9 -f ffmpeg-relay` — le trap du §4 prévient |
+| `skipping track 2 (Opus)` dans le journal, composite mort | entrée RTMP (rejette l'Opus) | entrée RTSP + `-c:a aac` (cf. piège n°5) |
+| Composite actif mais 0 octet consommé (`outbound_bytes=0`) | RTSP négocié en UDP | `-rtsp_transport tcp` avant le `-i` RTSP |
+| Le direct affiche une image figée | écran du téléphone éteint / app en fond (piège n°6) | écran allumé, app en premier plan, chargeur |
+| La « source » du direct ne change pas après relance | ancienne session toujours accrochée (piège n°7) | `sudo systemctl restart mediamtx`, relancer l'app |
+| `404 Not Found` RTSP au lancement du composite | composite démarré avant le flux du téléphone | bénin : `runOnInitRestart` le relance quand la source arrive |
 | Erreurs NAL au décodage du test | lecture du `.flv` pendant l'écriture | copier le fichier, ou attendre la fin |
 | Direct noir sur Twitch, composite actif | clé Twitch refusée | le journal : `journalctl -u mediamtx -f` — vérifie la clé |
 | L'app WHIP refuse `http://` | policy https de l'app | ajoute un reverse-proxy TLS (Caddy) devant :8889 |
