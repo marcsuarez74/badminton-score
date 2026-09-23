@@ -184,7 +184,7 @@ if [ -z "$RTMP_OUT" ]; then
   exit 1
 fi
 CHANNEL="${RENDER_CHANNEL:-<CHANNEL>}"
-cleanup() { kill 0 2>/dev/null; }
+cleanup() { kill 0 2>/dev/null; sleep 1; kill -9 0 2>/dev/null; }
 trap cleanup TERM INT
 python3 /opt/racketstream/renderer.py --channel "$CHANNEL" --interval "${RENDER_INTERVAL:-2}" 2>>/tmp/racketstream-renderer.log | ffmpeg -hide_banner -loglevel warning \
   -rtsp_transport tcp -i "rtsp://127.0.0.1:8554/live/$VPS_KEY" \
@@ -307,6 +307,7 @@ Twitch prend la moitié, on travaille sur les 2-3 premières secondes (créneau 
 | Le direct affiche une image figée | écran du téléphone éteint / app en fond (piège n°6) | écran allumé, app en premier plan, chargeur |
 | La « source » du direct ne change pas après relance | ancienne session toujours accrochée (piège n°7) | `sudo systemctl restart mediamtx`, relancer l'app |
 | `404 Not Found` RTSP au lancement du composite | composite démarré avant le flux du téléphone | bénin : `runOnInitRestart` le relance quand la source arrive |
+| Le direct reste « live »/figé après le Stop | ffmpeg survit au SIGTERM (accroché au réseau) | trap durci : TERM puis `kill -9` 1 s après (cf. §4) — sinon `sudo pkill -9 -f "ffmpeg -hide"` |
 | Erreurs NAL au décodage du test | lecture du `.flv` pendant l'écriture | copier le fichier, ou attendre la fin |
 | Direct noir sur Twitch, composite actif | clé Twitch refusée | le journal : `journalctl -u mediamtx -f` — vérifie la clé |
 | L'app WHIP refuse `http://` | policy https de l'app | ajoute un reverse-proxy TLS (Caddy) devant :8889 |
