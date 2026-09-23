@@ -1,0 +1,315 @@
+"""RacketStream renderer VPS — incruste le scorebug dans la vidéo streamée.
+
+Lit l'état du match sur Supabase (REST, lecture anon publique — même pick que
+l'overlay), dessine le scorebug (design phase 5, inchangé) en RGBA 1280x720
+à 2 fps sur stdout : ffmpeg-relay l'incruste dans la vidéo et publie vers Twitch.
+
+Contrat (spec 2026-09-21 §3) :
+  - aucun match → frame entièrement TRANSPARENTE
+  - Supabase injoignable → garde la dernière frame connue (on_error=KEEP)
+  - changement d'état → redessine au prochain tick
+"""
+
+import argparse
+import json
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
+
+# ---------------------------------------------------------------- constantes
+
+BASE_DIR = Path(__file__).resolve().parent
+FONT_PATH = BASE_DIR / "fonts" / "Archivo[wdth,wght].ttf"
+
+SUPABASE_URL = "https://bzdbnptnubkkagmmxhyi.supabase.co"
+# Clé anon publique RLS (identique à l'overlay GH Pages et au widget SE).
+ANON_KEY = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6ZGJucHRudWJra2FnbW14aHlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3Nzk5MDAsImV4cCI6MjEwNTM1NTkwMH0."
+    "_g_LV07W42GlOijx-XptJBJwBrfSgbcAm8StEWxqge0"
+)
+
+FRAME_W, FRAME_H = 1280, 720
+FPS = 2
+
+# Palette phase 5 — identique à overlay/index.html (rgba → alpha 0-255)
+BG = (10, 12, 14, 168)          # rgba(10,12,14,0.66)
+BORDER = (255, 255, 255, 20)    # rgba(255,255,255,0.08)
+TXT = (255, 255, 255, 255)
+MUTED = (255, 255, 255, 133)    # rgba(255,255,255,0.52)
+PIP_BORDER = (255, 255, 255, 89)  # rgba(255,255,255,0.35)
+SEP = (255, 255, 255, 31)       # rgba(255,255,255,0.12)
+TEAM1 = (47, 224, 92, 255)      # #2FE05C
+TEAM2 = (229, 72, 77, 255)      # #E5484D
+
+POSITIONS = ("topright", "topleft", "topcenter")
+MARGIN = 16                     # marge du bug dans la frame (aligné ffmpeg overlay)
+
+KEEP = object()                 # sentinelle : Supabase injoignable → garder la frame
+
+# Dimensions du design (cf. overlay/index.html)
+PAD_X, PAD_Y = 18, 9
+NAME_SIZE, PTS_SIZE, COLON_SIZE, SETLAB_SIZE = 23, 54, 40, 16
+PIP, PIP_GAP, PIP_RADIUS = 8, 5, 2
+NAME_COL_GAP = 3
+PTS_MINW = 46
+MID_PAD = 20                    # .mid padding horizontal
+COLON_PAD = 8                   # .colon padding horizontal
+SEP_M = 16                      # .sep marge horizontale
+NAME_MAXW = 190
+RADIUS = 12
+
+
+def load_font(size, weight=600):
+    f = ImageFont.truetype(str(FONT_PATH), size)
+    f.set_variation_by_axes([weight, 100])   # axes fvar : Weight, Width
+    return f
+
+
+# --------------------------------------------------------------------- pick
+
+def make_url(base, anon, channel, active):
+    params = [
+        ("select",
+         "started_at,match_state!inner(status,current_set,score_me,score_opp,sets_me,sets_opp,config)"),
+        ("channel", f"eq.{channel}"),
+        ("order", "started_at.desc.nullslast"),
+        ("limit", "1"),
+    ]
+    if active:
+        params.append(("match_state.status", "eq.active"))
+    return f"{base}/rest/v1/matches?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote, safe='!.,()')}"
+
+
+def fetch_json(url):
+    req = urllib.request.Request(url, headers={
+        "apikey": ANON_KEY,
+        "Authorization": f"Bearer {ANON_KEY}",
+        "Accept": "application/json",
+    })
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def normalize(rows):
+    ms = rows[0]["match_state"]
+    cfg = ms.get("config") or {}
+    return {
+        "score_me": ms["score_me"],
+        "score_opp": ms["score_opp"],
+        "sets_me": ms["sets_me"],
+        "sets_opp": ms["sets_opp"],
+        "current_set": ms["current_set"],
+        "sets_to_win": int(cfg.get("setsToWin") or 2),
+    }
+
+
+def pick(channel, base, anon, fetch=fetch_json, on_error=None):
+    """Actif le plus récent, sinon le plus récent tout statut.
+
+    Retourne None si aucun match ; on_error (None ou KEEP) si le réseau échoue.
+    """
+    for active in (True, False):
+        try:
+            rows = fetch(make_url(base, anon, channel, active))
+        except Exception:
+            return on_error
+        if rows:
+            return normalize(rows)
+    return None
+
+
+def fetch_names(channel):
+    """Noms du canal via l'Edge Function names (défauts MOI/LUI sinon)."""
+    try:
+        url = f"{SUPABASE_URL}/functions/v1/names?channel={urllib.parse.quote(channel)}"
+        with urllib.request.urlopen(url, timeout=10) as r:
+            n = json.loads(r.read().decode("utf-8"))
+        team = lambda a, b: f"{a}/{b}" if b else a
+        return (team(n.get("name1") or "MOI", n.get("name1b")),
+                team(n.get("name2") or "LUI", n.get("name2b")))
+    except Exception:
+        return ("MOI", "LUI")
+
+# ------------------------------------------------------------------- layout
+
+def _text_w(draw, txt, font):
+    if not txt:
+        return 0
+    return draw.textlength(txt, font=font)
+
+
+def _pts_slot(draw, value, f_pts):
+    """Largeur du slot score : stable par nombre de chiffres (tabular-nums).
+
+    Chaque chiffre occupe la largeur du « 0 » — les chiffres ne sautent pas
+    au tick, comme font-variant-numeric: tabular-nums dans le CSS.
+    """
+    digit_w = draw.textlength("0", font=f_pts)
+    return max(PTS_MINW, int(round(len(str(value)) * digit_w)))
+
+
+def compute_bug_layout(state, names, position, draw=None):
+    """Boîte (x, y, w, h) du scorebug dans la frame 1280x720."""
+    if position not in POSITIONS:
+        raise ValueError(f"position invalide: {position}")
+    probe = draw or ImageDraw.Draw(Image.new("RGBA", (8, 8)))
+
+    n1, n2 = names
+    f_name = load_font(NAME_SIZE, 600)
+    f_pts = load_font(PTS_SIZE, 700)
+    f_colon = load_font(COLON_SIZE, 600)
+    f_set = load_font(SETLAB_SIZE, 600)
+
+    pip_total = max(2, state["sets_to_win"])
+    pipsw = pip_total * PIP + (pip_total - 1) * PIP_GAP
+
+    t1w = max(_text_w(probe, n1.upper(), f_name), pipsw, 0)
+    t2w = max(_text_w(probe, n2.upper(), f_name), pipsw, 0)
+
+    pts1w = _pts_slot(probe, state["score_me"], f_pts)
+    pts2w = _pts_slot(probe, state["score_opp"], f_pts)
+    colonw = _text_w(probe, ":", f_colon)
+    midw = pts1w + 2 * COLON_PAD + colonw + 2 * COLON_PAD + pts2w
+
+    setlab = f"SET {state['current_set']}"
+    setw = _text_w(probe, setlab, f_set)
+
+    w = (2 * PAD_X + t1w + 2 * MID_PAD + midw + 2 * MID_PAD + t2w
+         + 2 * SEP_M + 1 + 2 * SEP_M + setw)
+
+    content_h = PTS_SIZE                     # les chiffres dominent la hauteur
+    h = content_h + 2 * PAD_Y
+
+    w = int(round(w))
+    if position == "topright":
+        x = FRAME_W - MARGIN - w
+    elif position == "topleft":
+        x = MARGIN
+    else:
+        x = (FRAME_W - w) // 2
+    return int(x), MARGIN, int(w), int(h)
+
+# -------------------------------------------------------------------- draw
+
+def _pips(d, x, y, won, total, color):
+    for i in range(total):
+        px = x + i * (PIP + PIP_GAP)
+        box = (px, y, px + PIP, y + PIP)
+        if i < won:
+            d.rounded_rectangle(box, radius=PIP_RADIUS, fill=color, outline=color, width=1)
+        else:
+            d.rounded_rectangle(box, radius=PIP_RADIUS, outline=PIP_BORDER, width=1)
+
+
+def draw_frame(state, names=("MOI", "LUI"), position="topright", size=(FRAME_W, FRAME_H)):
+    """Frame RGBA : transparente partout sauf le scorebug semi-transparent."""
+    img = Image.new("RGBA", size, (0, 0, 0, 0))
+    if state is None:
+        return img
+    d = ImageDraw.Draw(img)
+
+    x, y, w, h = compute_bug_layout(state, names, position, draw=d)
+
+    # barre translucide bordée (design phase 5 — pas d'ombre : le composite
+    # alpha de la vidéo donne le rendu exact du CSS rgba(10,12,14,0.66))
+    d.rounded_rectangle((x, y, x + w, y + h), radius=RADIUS, fill=BG,
+                        outline=BORDER, width=1)
+
+    n1, n2 = names
+    f_name = load_font(NAME_SIZE, 600)
+    f_pts = load_font(PTS_SIZE, 700)
+    f_colon = load_font(COLON_SIZE, 600)
+    f_set = load_font(SETLAB_SIZE, 600)
+
+    pip_total = max(2, state["sets_to_win"])
+    pipsw = pip_total * PIP + (pip_total - 1) * PIP_GAP
+
+    base_y = y + PAD_Y + PTS_SIZE              # baseline des chiffres
+
+    # camp 1
+    t1w = max(d.textlength(n1.upper(), font=f_name), pipsw)
+    d.text((x + PAD_X, base_y - PIP - NAME_COL_GAP - NAME_SIZE), n1.upper(),
+           font=f_name, fill=TXT, anchor="ls")
+    _pips(d, x + PAD_X, base_y - PIP, state["sets_me"], pip_total, TEAM1)
+
+    # milieu : p1 : p2
+    pts1w = _pts_slot(d, state["score_me"], f_pts)
+    pts2w = _pts_slot(d, state["score_opp"], f_pts)
+    mx = x + PAD_X + t1w + MID_PAD
+    d.text((mx + pts1w / 2, base_y), str(state["score_me"]), font=f_pts, fill=TXT, anchor="ms")
+    cx = mx + pts1w + COLON_PAD
+    d.text((cx + d.textlength(":", font=f_colon) / 2, base_y), ":", font=f_colon, fill=MUTED, anchor="ms")
+    d.text((cx + 2 * COLON_PAD + d.textlength(":", font=f_colon) + pts2w / 2, base_y),
+           str(state["score_opp"]), font=f_pts, fill=TXT, anchor="ms")
+
+    # camp 2
+    t2x = cx + 2 * COLON_PAD + d.textlength(":", font=f_colon) + pts2w + MID_PAD
+    t2w = max(d.textlength(n2.upper(), font=f_name), pipsw)
+    d.text((t2x, base_y - PIP - NAME_COL_GAP - NAME_SIZE), n2.upper(),
+           font=f_name, fill=TXT, anchor="ls")
+    _pips(d, t2x, base_y - PIP, state["sets_opp"], pip_total, TEAM2)
+
+    # séparateur + SET n
+    sx = t2x + t2w + SEP_M
+    d.rectangle((sx, y + PAD_Y + 2, sx + 1, y + h - PAD_Y - 2), fill=SEP)
+    labx = sx + 1 + SEP_M
+    d.text((labx, y + h / 2), f"SET {state['current_set']}", font=f_set, fill=MUTED, anchor="lm")
+
+    return img
+
+# --------------------------------------------------------------------- main
+
+def frame_bytes(img):
+    return img.tobytes()   # RGBA brut, ordre raster
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="RacketStream scorebug renderer (RGBA 2 fps sur stdout)")
+    ap.add_argument("--channel", required=True)
+    ap.add_argument("--interval", type=float, default=2.0, help="période de polling Supabase (s)")
+    ap.add_argument("--position", default="topright", choices=POSITIONS)
+    ap.add_argument("--name1", help="forcer le nom du camp 1 (sinon réglages du canal)")
+    ap.add_argument("--name2", help="forcer le nom du camp 2")
+    ap.add_argument("--url", default=SUPABASE_URL)
+    ap.add_argument("--png", help="écrire un PNG d'aperçu et quitter (validation visuelle)")
+    args = ap.parse_args(argv)
+
+    if args.name1 and args.name2:
+        names = (args.name1, args.name2)
+    else:
+        auto = fetch_names(args.channel)
+        names = (args.name1 or auto[0], args.name2 or auto[1])
+
+    if args.png:
+        state = pick(args.channel, args.url, ANON_KEY)
+        draw_frame(state, names=names, position=args.position).save(args.png)
+        print(f"PNG écrit: {args.png} (state={'aucun' if state is None else 'match'})")
+        return
+
+    out = sys.stdout.buffer
+    frame_period = 1.0 / FPS
+    poll_every = max(1, int(round(args.interval * FPS)))   # ticks entre deux polls
+    tick = 0
+    last = None
+    while True:
+        t0 = time.monotonic()
+        if tick % poll_every == 0:
+            state = pick(args.channel, args.url, ANON_KEY, on_error=KEEP)
+            if state is not KEEP:
+                last = state
+        img = draw_frame(last, names=names, position=args.position)
+        out.write(frame_bytes(img))
+        out.flush()
+        tick += 1
+        elapsed = time.monotonic() - t0
+        time.sleep(max(0.0, frame_period - elapsed))
+
+
+if __name__ == "__main__":
+    main()
