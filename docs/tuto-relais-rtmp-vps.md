@@ -186,6 +186,7 @@ fi
 CHANNEL="${RENDER_CHANNEL:-<CHANNEL>}"
 cleanup() { kill 0 2>/dev/null; sleep 1; kill -9 0 2>/dev/null; }
 trap cleanup TERM INT
+while true; do
 python3 /opt/racketstream/renderer.py --channel "$CHANNEL" --interval "${RENDER_INTERVAL:-2}" 2>>/tmp/racketstream-renderer.log | ffmpeg -hide_banner -loglevel warning \
   -rtsp_transport tcp -i "rtsp://127.0.0.1:8554/live/$VPS_KEY" \
   -f rawvideo -pix_fmt rgba -s 1280x720 -r 2 -i - \
@@ -195,7 +196,8 @@ python3 /opt/racketstream/renderer.py --channel "$CHANNEL" --interval "${RENDER_
   -g 30 -pix_fmt yuv420p \
   -c:a aac -b:a 128k \
   -f flv "$RTMP_OUT"
-cleanup
+sleep 2
+done
 ```
 
 ```bash
@@ -212,6 +214,12 @@ sudo systemctl restart mediamtx
 > 💡 **Le pillarbox** : `force_original_aspect_ratio=decrease` + `pad` : si le téléphone tourne
 > en portrait, l'image garde ses proportions centrée sur fond noir au lieu d'être déformée.
 > Le scorebug reste en haut à droite dans tous les cas.
+>
+> 🔴 **Le piège n°8 — la boucle de relance** : le path étant statique, MediaMTX relance le
+> composite dès qu'il meurt, même sans flux : un composite qui échoue (404 RTSP avant le
+> publish) = une relance par seconde, 24h/24. D'où la **boucle interne** `while true` du
+> script : le composite reste vivant et retente lui-même toutes les 2 s ; MediaMTX n'a plus
+> qu'à le tuer/le laisser vivre.
 >
 > 💡 Pour tester **sans Twitch** : ajoute temporairement `RTMP_OUT=/tmp/test.flv` dans
 > `/etc/racketstream/env`, streame, puis extrais une frame :
