@@ -9,7 +9,7 @@
 #                                                   DEVICE_KEY vide → GCM)
 # Prérequis : .secrets/phase-4a.env (SUPABASE_URL ; DEVICE_KEY requis sauf
 #             STORE=1, ou .secrets/phase-4a-friend.env en mode FRIEND=1),
-#             SDK Connect IQ installé, clé ~/keys/developer_key.der
+#             SDK Connect IQ installé, clé ~/keys/developer_key_personal.der
 #             (surchargeable : DEV_KEY_PATH=... scripts/build-release.sh)
 set -euo pipefail
 
@@ -45,7 +45,7 @@ if [ "$STORE_MODE" = "0" ]; then
     : "${DEVICE_KEY:?DEVICE_KEY manquant dans .secrets/phase-4a.env}"
 fi
 BACKEND_URL="$SUPABASE_URL/functions/v1/sync"
-KEY_PATH="${DEV_KEY_PATH:-$HOME/keys/developer_key.der}"
+KEY_PATH="${DEV_KEY_PATH:-$HOME/keys/developer_key_personal.der}"
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
 
 TMP="$(mktemp -d)"
