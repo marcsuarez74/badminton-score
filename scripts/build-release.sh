@@ -84,4 +84,11 @@ for DEV in $DEVICES; do
         -o "$OUT/racketstream-$DEV$SUFFIX.prg" -y "$KEY_PATH" -w -r
     echo "OK : $OUT/racketstream-$DEV$SUFFIX.prg"
 done
+if [ "$STORE_MODE" = "1" ]; then
+    # Paquet store (.iq) : toutes les montres du manifest, même config cuite
+    # (DEVICE_KEY vide, BACKEND_URL cuit) — le dépôt Connect IQ Store.
+    "$SDK/bin/monkeyc" -e -f "$TMP/app/monkey.jungle" \
+        -o "$OUT/racketstream.iq" -y "$KEY_PATH" -w -r
+    echo "OK : $OUT/racketstream.iq (paquet store)"
+fi
 echo "Prêt à sideloader : copie le .prg dans GARMIN/Apps/ de la montre."
