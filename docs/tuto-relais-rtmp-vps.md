@@ -188,7 +188,7 @@ cleanup() { kill 0 2>/dev/null; sleep 1; kill -9 0 2>/dev/null; }
 trap cleanup TERM INT
 while true; do
 python3 /opt/racketstream/renderer.py --channel "$CHANNEL" --interval "${RENDER_INTERVAL:-2}" 2>>/tmp/racketstream-renderer.log | ffmpeg -hide_banner -loglevel warning \
-  -rtsp_transport tcp -i "rtsp://127.0.0.1:8554/live/$VPS_KEY" \
+  -rtsp_transport tcp -rw_timeout 5000000 -i "rtsp://127.0.0.1:8554/live/$VPS_KEY" \
   -f rawvideo -pix_fmt rgba -s 1280x720 -r 2 -i - \
   -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,setsar=1,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0];[v0][1:v]overlay=0:0:format=auto[out]" \
   -map "[out]" -map 0:a \
@@ -220,6 +220,13 @@ sudo systemctl restart mediamtx
 > publish) = une relance par seconde, 24h/24. D'où la **boucle interne** `while true` du
 > script : le composite reste vivant et retente lui-même toutes les 2 s ; MediaMTX n'a plus
 > qu'à le tuer/le laisser vivre.
+>
+> 🔴 **Le piège n°9 — le fantôme Twitch** : sur un path statique, MediaMTX **ne tue pas** le
+> runOnInit quand la publication s'arrête (il ne le tue qu'à la fermeture du path, qui n'arrive
+> jamais). Résultat : le ffmpeg reste branché à Twitch **indéfiniment** après ton Stop — le
+> direct reste « live » avec une image figée. D'où `-rw_timeout 5000000` : si la source
+> n'envoie plus rien pendant 5 s, le ffmpeg abandonne, la boucle interne repart, et Twitch
+> passe offline (~5 s + le délai Twitch).
 >
 > 💡 Pour tester **sans Twitch** : ajoute temporairement `RTMP_OUT=/tmp/test.flv` dans
 > `/etc/racketstream/env`, streame, puis extrais une frame :
