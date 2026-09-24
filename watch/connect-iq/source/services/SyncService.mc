@@ -137,14 +137,14 @@ class SyncService {
         }
     }
 
-    // File non vide → re-tenter au prochain créneau (≥ 5 s / backoff).
+    // File non vide → re-tenter au prochain créneau (≥ 2 s / backoff).
     function _scheduleDrain() as Void {
         var engine = mEngineRef;
         if (engine == null) { return; }
         var batch = mCore.batchSlice(engine.getEvents(), MatchStore.getPendingFrom(), 5);
         if (batch.size() == 0) { return; }
         var now = System.getTimer();
-        var next = mLastAttemptMs + 5000l;
+        var next = mLastAttemptMs + 2000l;
         if (mBackoffUntilMs > next) { next = mBackoffUntilMs; }
         var delay = next - now;
         if (delay < 1000l) { delay = 1000l; }

@@ -142,7 +142,8 @@ module SyncTests {
     function test_core_shouldsend(logger as Logger) as Boolean {
         var core = new SyncCore();
         if (core.shouldSend(10000l, 0l, false, 0l) != true) { return false; }        // 1er envoi
-        if (core.shouldSend(10000l, 8000l, false, 0l) != false) { return false; }    // < 5 s
+        if (core.shouldSend(10000l, 9000l, false, 0l) != false) { return false; }    // < 2 s
+        if (core.shouldSend(10000l, 8000l, false, 0l) != true) { return false; }     // créneau écoulé (2 s)
         if (core.shouldSend(10000l, 5000l, true, 0l) != false) { return false; }     // en vol
         if (core.shouldSend(10000l, 0l, false, 20000l) != false) { return false; }   // backoff
         if (core.shouldSend(30000l, 0l, false, 20000l) != true) { return false; }    // backoff écoulé

@@ -68,12 +68,13 @@ class SyncCore {
         return ms;
     }
 
-    // Conditions d'envoi : pas de requête en vol, backoff écoulé, ≥ 5 s entre
-    // débuts de requêtes (débit BLE 400-800 o/s, §9.6 de la spec principale).
+    // Conditions d'envoi : pas de requête en vol, backoff écoulé, ≥ 2 s entre
+    // débuts de requêtes (débit BLE 400-800 o/s tient largement : un batch de
+    // 5 points ≈ 200 o / 2 s ; §9.6 de la spec principale).
     function shouldSend(nowMs as Long, lastAttemptMs as Long, inFlight as Boolean, backoffUntilMs as Long) as Boolean {
         if (inFlight) { return false; }
         if (nowMs < backoffUntilMs) { return false; }
-        if (lastAttemptMs != 0l && nowMs - lastAttemptMs < 5000l) { return false; }
+        if (lastAttemptMs != 0l && nowMs - lastAttemptMs < 2000l) { return false; }
         return true;
     }
 }
