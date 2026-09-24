@@ -47,6 +47,7 @@ Les secrets vivent uniquement dans `/etc/racketstream/env` (chmod 640, jamais da
 VPS_KEY=<64 caractères hex — la clé d'ingest, générée avec openssl rand -hex 32>
 TWITCH_KEY=<ta clé stream Twitch>
 RENDER_INTERVAL=1          # période de polling Supabase (s)
+RENDER_STALE_S=600         # sans sync depuis X s, le match est « fantôme » : l'overlay disparaît
 # RENDER_CHANNEL=<CHANNEL> # si plusieurs canaux
 # RENDER_POSITION=topright # topright | topleft | topcenter
 ```
@@ -163,7 +164,7 @@ sudo apt-get install -y python3-pil
 sudo python3 /opt/racketstream/renderer.py --channel <CHANNEL> --png /tmp/scorebug.png
 ```
 
-L'aperçu `/tmp/scorebug.png` (fond transparent) doit contenir le scorebug — ou rien si aucun match n'est actif. Le renderer réutilise la clé anon publique déjà présente dans l'overlay.
+L'aperçu `/tmp/scorebug.png` (fond transparent) doit contenir le scorebug — ou rien si aucun match actif n'est **frais** (un match quitté reste « active » dans la base : sans sync depuis `RENDER_STALE_S` s, il est un fantôme et l'overlay disparaît tout seul ; l'edge `sync` rafraîchit `updated_at` à chaque synchronisation). Le renderer réutilise la clé anon publique déjà présente dans l'overlay.
 
 ---
 
@@ -187,7 +188,7 @@ CHANNEL="${RENDER_CHANNEL:-<CHANNEL>}"
 cleanup() { kill 0 2>/dev/null; sleep 1; kill -9 0 2>/dev/null; }
 trap cleanup TERM INT
 while true; do
-python3 /opt/racketstream/renderer.py --channel "$CHANNEL" --interval "${RENDER_INTERVAL:-2}" 2>>/tmp/racketstream-renderer.log | ffmpeg -hide_banner -loglevel warning \
+python3 /opt/racketstream/renderer.py --channel "$CHANNEL" --interval "${RENDER_INTERVAL:-2}" --stale "${RENDER_STALE_S:-600}" 2>>/tmp/racketstream-renderer.log | ffmpeg -hide_banner -loglevel warning \
   -rtsp_transport tcp -rw_timeout 5000000 -i "rtsp://127.0.0.1:8554/live/$VPS_KEY" \
   -f rawvideo -pix_fmt rgba -s 1280x720 -r 2 -i - \
   -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,setsar=1,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[v0];[v0][1:v]overlay=0:0:format=auto[out]" \

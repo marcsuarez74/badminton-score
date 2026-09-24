@@ -4,8 +4,10 @@ Lit l'état du match sur Supabase (REST, lecture anon publique — même pick qu
 l'overlay), dessine le scorebug (design phase 5, inchangé) en RGBA 1280x720
 à 2 fps sur stdout : ffmpeg-relay l'incruste dans la vidéo et publie vers Twitch.
 
-Contrat (spec 2026-09-21 §3) :
-  - aucun match → frame entièrement TRANSPARENTE
+Contrat (spec 2026-09-21 §3, ajusté 2026-09-24) :
+  - aucun match ACTIF FRAIS → frame entièrement TRANSPARENTE
+    (un match quitté reste « active » dans la base : sans sync depuis
+    stale_s il est un « fantôme » et ne doit plus s'afficher)
   - Supabase injoignable → garde la dernière frame connue (on_error=KEEP)
   - changement d'état → redessine au prochain tick
 """
@@ -17,6 +19,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -73,16 +76,15 @@ def load_font(size, weight=600):
 
 # --------------------------------------------------------------------- pick
 
-def make_url(base, anon, channel, active):
+def make_url(base, anon, channel):
     params = [
         ("select",
-         "started_at,match_state!inner(status,current_set,score_me,score_opp,sets_me,sets_opp,config)"),
+         "started_at,match_state!inner(status,updated_at,current_set,score_me,score_opp,sets_me,sets_opp,config)"),
         ("channel", f"eq.{channel}"),
+        ("match_state.status", "eq.active"),
         ("order", "started_at.desc.nullslast"),
         ("limit", "1"),
     ]
-    if active:
-        params.append(("match_state.status", "eq.active"))
     return f"{base}/rest/v1/matches?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote, safe='!.,()')}"
 
 
@@ -109,18 +111,28 @@ def normalize(rows):
     }
 
 
-def pick(channel, base, anon, fetch=fetch_json, on_error=None):
-    """Actif le plus récent, sinon le plus récent tout statut.
+def pick(channel, base, anon, fetch=fetch_json, on_error=None, stale_s=600):
+    """Match ACTIF le plus récent, mais seulement s'il est FRAIS (sync ≤ stale_s).
 
-    Retourne None si aucun match ; on_error (None ou KEEP) si le réseau échoue.
+    Un match quitté reste « active » dans la base (la montre purge localement
+    sans prévenir) : sans sync depuis stale_s, c'est un « fantôme » — l'overlay
+    doit disparaître. On_error (None ou KEEP) si le réseau échoue.
     """
-    for active in (True, False):
+    try:
+        rows = fetch(make_url(base, anon, channel))
+    except Exception:
+        return on_error
+    if rows:
+        raw = rows[0]["match_state"].get("updated_at")
         try:
-            rows = fetch(make_url(base, anon, channel, active))
-        except Exception:
-            return on_error
-        if rows:
-            return normalize(rows)
+            updated = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            if updated.tzinfo is None:
+                updated = updated.replace(tzinfo=timezone.utc)
+            age_s = (datetime.now(timezone.utc) - updated).total_seconds()
+            if age_s <= stale_s:
+                return normalize(rows)
+        except (TypeError, ValueError):
+            pass   # updated_at absent/corrompu → traité comme fantôme
     return None
 
 
@@ -273,6 +285,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="RacketStream scorebug renderer (RGBA 2 fps sur stdout)")
     ap.add_argument("--channel", required=True)
     ap.add_argument("--interval", type=float, default=2.0, help="période de polling Supabase (s)")
+    ap.add_argument("--stale", type=int, default=600,
+                    help="durée max (s) sans sync avant de considérer le match fantôme")
     ap.add_argument("--position", default="topright", choices=POSITIONS)
     ap.add_argument("--name1", help="forcer le nom du camp 1 (sinon réglages du canal)")
     ap.add_argument("--name2", help="forcer le nom du camp 2")
@@ -287,7 +301,7 @@ def main(argv=None):
         names = (args.name1 or auto[0], args.name2 or auto[1])
 
     if args.png:
-        state = pick(args.channel, args.url, ANON_KEY)
+        state = pick(args.channel, args.url, ANON_KEY, stale_s=args.stale)
         draw_frame(state, names=names, position=args.position).save(args.png)
         print(f"PNG écrit: {args.png} (state={'aucun' if state is None else 'match'})")
         return
@@ -300,7 +314,7 @@ def main(argv=None):
     while True:
         t0 = time.monotonic()
         if tick % poll_every == 0:
-            state = pick(args.channel, args.url, ANON_KEY, on_error=KEEP)
+            state = pick(args.channel, args.url, ANON_KEY, on_error=KEEP, stale_s=args.stale)
             if state is not KEEP:
                 last = state
         img = draw_frame(last, names=names, position=args.position)

@@ -56,6 +56,9 @@ const db: Db = {
       sets_opp: snapshot.setsOpp,
       last_sequence: snapshot.lastSequence,
       config,
+      // Fraîcheur (anti-fantôme) : le renderer VPS n'affiche un match actif
+      // que si updated_at ≤ RENDER_STALE_S (600 s par défaut).
+      updated_at: new Date().toISOString(),
     }, { onConflict: "match_id" });
     return { error: error ? error.message : null };
   },
